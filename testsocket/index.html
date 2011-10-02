@@ -1,0 +1,16 @@
+<html><body><pre>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+//  var address = 'http://192.168.0.6';
+var out = function( s ) {
+	document.writeln( s )
+	}
+  var address = 'http://127.0.0.1';
+  var socket = io.connect( address );
+  socket.on('news', function (data) {
+    console.log(data);
+//    out( data.msg )
+   // socket.emit('my other event', { my: 'data' });
+  });
+</script>
+</pre></body></html>
