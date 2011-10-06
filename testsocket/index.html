@@ -1,16 +1,45 @@
-<html><body><pre>
-<script src="/socket.io/socket.io.js"></script>
-<script>
-//  var address = 'http://192.168.0.6';
-var out = function( s ) {
-	document.writeln( s )
-	}
-  var address = 'http://127.0.0.1';
-  var socket = io.connect( address );
-  socket.on('news', function (data) {
-    console.log(data);
-//    out( data.msg )
-   // socket.emit('my other event', { my: 'data' });
-  });
-</script>
-</pre></body></html>
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Socket.io Test title</title>
+		<script src="/socket.io/socket.io.js"></script>
+		<script type="text/javascript">
+			var curr_pos = [0,0];
+			var output_msg = function( s ) {
+				document.writeln( s )
+			};
+			
+			//output_msg('test');
+
+			var socket = io.connect();
+
+			socket.on('connected', function (data) {
+				console.log('successfully connceted');
+			});
+
+			socket.on( 'pos', function( data ){
+				curr_pos = data;
+				console.log( 'received pos upd: ' + data );
+			});
+
+			function loader(){
+				var canvas = document.getElementById('canvas');
+				var canvas1 = canvas.getContext('2d');
+				canvas1.fillStyle = "rgba(0, 0, 0, 1)";
+//				canvas1.fillRect(30, 30, 75, 70);
+
+				setInterval( function(){
+						canvas1.clearRect(0,0,600,500);
+						socket.emit( 'key pressed', curr_pos );
+						canvas1.width = canvas1.width;
+						canvas1.fillRect(curr_pos[0], 30, 30, 70);
+					}, 1000);
+			}
+		</script>
+	</head>
+	<body onload="loader()">
+		
+		<canvas id="canvas" width="600" height="500"></canvas>
+	</body>
+</html>
+
