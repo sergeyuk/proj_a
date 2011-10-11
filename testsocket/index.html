@@ -4,36 +4,54 @@
 		<title>Socket.io Test title</title>
 		<script src="/socket.io/socket.io.js"></script>
 		<script type="text/javascript">
-			var curr_pos = [0,0];
-			var output_msg = function( s ) {
-				document.writeln( s )
-			};
+			var this_client_id = -1;
+			var positions = {};
 			
-			//output_msg('test');
-
 			var socket = io.connect();
 
 			socket.on('connected', function (data) {
 				console.log('successfully connceted');
+				this_client_id = data[0];
+				positions = data[1];
 			});
 
-			socket.on( 'pos', function( data ){
-				curr_pos = data;
-				console.log( 'received pos upd: ' + data );
+			socket.on( 'pos update', function( data ){
+				var client_id = data[0];
+				var client_pos = data[1];
+				positions[client_id] = client_pos;
 			});
 
+			function handle_keyboard(event){
+				var keyCode = 0;
+
+				if( event == null ){
+					keyCode = window.event.keyCode;
+					window.event.preventDefault();
+				}
+				else {
+					keyCode = event.keyCode;
+					event.preventDefault();
+				}
+				switch(keyCode)	{
+					case 37: socket.emit( 'left pressed' ); break;
+					case 38: socket.emit( 'up pressed' ); break;
+					case 39: socket.emit( 'right pressed' ); break;
+					case 40: socket.emit( 'down pressed' ); break;
+				}
+
+			}
 			function loader(){
 				var canvas = document.getElementById('canvas');
 				var canvas1 = canvas.getContext('2d');
-				canvas1.fillStyle = "rgba(0, 0, 0, 1)";
-//				canvas1.fillRect(30, 30, 75, 70);
-
+				window.addEventListener('keydown',handle_keyboard,false);
 				setInterval( function(){
 						canvas1.clearRect(0,0,600,500);
-						socket.emit( 'key pressed', curr_pos );
+						canvas1.fillStyle = "rgba(0, 0, 0, 1)";
 						canvas1.width = canvas1.width;
-						canvas1.fillRect(curr_pos[0], 30, 30, 70);
-					}, 1000);
+						for( var pos in positions ){
+							canvas1.fillRect( positions[pos][0], positions[pos][1], 30, 30);
+						} 
+					}, 40);
 			}
 		</script>
 	</head>

@@ -21,28 +21,39 @@ var fs = require('fs')
 
 console.log("start the stuff....");
 
+var update_client_position = function( socket, id_value ){
+	socket.emit( 'pos update', [id_value, positions[id_value]] );
+	socket.broadcast.emit( 'pos update', [id_value, positions[id_value]] );
+};
+
 io.sockets.on('connection', function (socket) {
 	socket.broadcast.emit( 'new user' );
 
 	var this_user_id = last_user_id++;
 	positions[this_user_id] = [0, 0];
-	socket.set('id', this_user_id, function(){
-		socket.get('id', function( err, id_value ){
-			socket.emit( 'connected', id_value );
-			socket.emit( 'pos', positions[id_value] );
-		});
-	});
+	socket.set('id', this_user_id);
+	socket.emit( 'connected', [this_user_id, positions] );
+	update_client_position( socket, this_user_id );
+
 
 	console.log( "connected one.." );
 
-	socket.on( 'key pressed', function (data ){ 
-		console.log( "incrementing pos.." );
-		socket.get( 'id', function( err, id_value ){
-			var pos = positions[id_value];
-			pos[0]++;
-			socket.emit( 'pos', pos );
-		});
-	});
+	socket.on( 'left pressed', function(){ socket.get( 'id', function( err, id_value ){
+			positions[id_value][0]--;
+			update_client_position( socket, id_value ); });});
+
+	socket.on( 'up pressed', function(){ socket.get( 'id', function( err, id_value ){
+			positions[id_value][1]--;
+			update_client_position( socket, id_value ); });});
+
+	socket.on( 'right pressed', function(){ socket.get( 'id', function( err, id_value ){
+			positions[id_value][0]++;
+			update_client_position( socket, id_value ); });});
+
+	socket.on( 'down pressed', function(){ socket.get( 'id', function( err, id_value ){
+			positions[id_value][1]++;
+			update_client_position( socket, id_value ); });});
+
 });
 
 app.listen(8000);
