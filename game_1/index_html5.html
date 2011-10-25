@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Socket.io Test title</title>
+		<script src="/socket.io/socket.io.js"></script>
+		<script type="text/javascript">
+			var positions = {};
+			
+			var socket = io.connect();
+
+			socket.on('connected', function (data) {
+				console.log('successfully connceted');
+				positions = data[1];
+			});
+
+			socket.on( 'pos update', function( data ){
+				var client_id = data[0];
+				var client_pos = data[1];
+				positions[client_id] = client_pos;
+			});
+
+			function handle_keyboard(event){
+				var keyCode = 0;
+
+				if( event == null ){
+					keyCode = window.event.keyCode;
+					window.event.preventDefault();
+				}
+				else {
+					keyCode = event.keyCode;
+					event.preventDefault();
+				}
+				switch(keyCode)	{
+					case 37: socket.emit( 'left pressed' ); break;
+					case 38: socket.emit( 'up pressed' ); break;
+					case 39: socket.emit( 'right pressed' ); break;
+					case 40: socket.emit( 'down pressed' ); break;
+				}
+
+			}
+			function loader(){
+				var canvas = document.getElementById('canvas');
+				var canvas1 = canvas.getContext('2d');
+				window.addEventListener('keydown',handle_keyboard,false);
+				setInterval( function(){
+						canvas1.clearRect(0,0,600,500);
+						canvas1.fillStyle = "rgba(0, 0, 0, 1)";
+						canvas1.width = canvas1.width;
+						for( var pos in positions ){
+							canvas1.fillRect( positions[pos][0], positions[pos][1], 30, 30);
+						} 
+					}, 40);
+			}
+		</script>
+	</head>
+	<body onload="loader()">
+		
+		<canvas id="canvas" width="600" height="500"></canvas>
+	</body>
+</html>
+
