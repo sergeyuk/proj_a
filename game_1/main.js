@@ -7,7 +7,7 @@ var GameClass = function(){
 	this.camera; 
 	this.scene; 
 	this.renderer; 
-	this.objects;
+	this.objects={};
 	this.particleLight;
 	this.pointLight;
 }
@@ -18,12 +18,61 @@ var ShipClass = function(){
 }
 
 var GAME = new GameClass();
-var gg_ship = new ShipClass();
+//var gg_ship = new ShipClass();
 
 init();
-load_ship();
+init_socket_io();
 animate();
-	
+
+	function init_socket_io(){
+		var socket = io.connect();
+
+		// initial data response
+		socket.on('connected', function (data) {
+			console.log('successfully connceted');
+			create_ships_from_server_data(data);
+		});
+
+		socket.on('disconnected', function( data ){
+			delete GAME.objects[data]
+		});
+
+		socket.on( 'pos update', function( data ){
+				var client_id = data[0];
+				var client_pos = data[1];
+				if (GAME.objects[client_id] === undefined){
+					GAME.objects[client_id] = new ShipClass();
+					load_ship( client_id, client_pos );
+				}
+				else{
+					GAME.objects[client_id].ship_mesh.position.set( client_pos.x,client_pos.y,client_pos.z);
+				}
+			});
+	}	
+
+	function create_ships_from_server_data( data ){
+		for( client_id in data ){
+			GAME.objects[client_id] = new ShipClass();
+			load_ship( client_id, data[client_id] );
+		}
+	}
+
+	function handle_keyboard(event){
+		var keyCode = 0;
+
+		if( event == null ){
+			keyCode = window.event.keyCode;
+			window.event.preventDefault();
+		}
+		else {
+			keyCode = event.keyCode;
+			event.preventDefault();
+		}
+		if(keyCode>=37 && keycode <=40)	{
+			socket.emit( 'ship control', 40-keycode );
+		}
+	}
+
 	function init() {
 		GAME.container = document.createElement( 'div' );
 		document.body.appendChild( GAME.container );
@@ -41,17 +90,20 @@ animate();
 		GAME.pointLight = new THREE.PointLight( 0xFFFFFF );		
 		GAME.pointLight.position.set( 10, 50, 130 );
 		GAME.scene.add(GAME.pointLight);
+		window.addEventListener('keydown',handle_keyboard,false);
 	}
 	
-	function load_ship(){
-		gg_ship.material = new THREE.MeshLambertMaterial( {
+	function load_ship( client_id, pos ){
+		var new_ship = GAME.objects[client_id];
+		new_ship.material = new THREE.MeshLambertMaterial( {
 			map: THREE.ImageUtils.loadTexture( "obj/Gg/Gg.png" )
 			});
 			
 		var loader = new THREE.JSONLoader( true );	
 		loader.load( { model: "obj/Gg/Gg.js", callback: function( geometry ) { 
-			gg_ship.mesh = new THREE.Mesh( geometry, gg_ship.material );
-			GAME.scene.add(gg_ship.mesh);
+			new_ship.ship_mesh = new THREE.Mesh( geometry, new_ship.material );
+			GAME.scene.add(new_ship.ship_mesh);
+			new_ship.ship_mesh.position.set( pos.x, pos.y, pos.z );
 			} } );
 	}
 	
@@ -59,11 +111,12 @@ animate();
 	
 	function animate() {
 		requestAnimationFrame( animate );
+		/*
 		var timer = new Date().getTime() / 1000;
 		var dt = timer - last_time_t;
 		last_time_t = timer;
 		if( dt > 0.033 ) dt = 0.033;
-		tick( dt );
+		tick( dt );*/
 		GAME.renderer.render( GAME.scene, GAME.camera );
 	}
 	
