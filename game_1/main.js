@@ -10,6 +10,8 @@ var GameClass = function(){
 	this.objects={};
 	this.particleLight;
 	this.pointLight;
+	
+	this.socket;
 }
 
 var ShipClass = function(){
@@ -45,9 +47,11 @@ animate();
 					load_ship( client_id, client_pos );
 				}
 				else{
-					GAME.objects[client_id].ship_mesh.position.set( client_pos.x,client_pos.y,client_pos.z);
+					if(GAME.objects[client_id].ship_mesh)
+						GAME.objects[client_id].ship_mesh.position.set( client_pos.x,client_pos.y,client_pos.z);
 				}
 			});
+		GAME.socket = socket;
 	}	
 
 	function create_ships_from_server_data( data ){
@@ -68,8 +72,8 @@ animate();
 			keyCode = event.keyCode;
 			event.preventDefault();
 		}
-		if(keyCode>=37 && keycode <=40)	{
-			socket.emit( 'ship control', 40-keycode );
+		if(keyCode>=37 && keyCode <=40)	{
+			GAME.socket.emit( 'ship control', 40-keyCode );
 		}
 	}
 

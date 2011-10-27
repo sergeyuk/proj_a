@@ -1,15 +1,20 @@
+var url = require("url");
 
 function handler (req, res) {
-  fs.readFile('./index.html',
-  function (err, data) {
-    if (err) {
-      res.writeHead(500);
-      return res.end('Error loading index.html');
-    }
+	if (req.method === "GET" || req.method === "HEAD") {
+		var pathname = url.parse(req.url).pathname;
+		console.log( pathname );
+		if( pathname === '/' ) pathname = '/index.html';
+		fs.readFile('.' + pathname, function (err, data) {
+			if (err) {
+				res.writeHead(500);
+				return res.end('Error loading ' + pathname);
+			}
 
-    res.writeHead(200);
-    res.end(data);
-  });
+			res.writeHead(200);
+			res.end(data);
+		});
+	}
 }
 
 var GAME = {
@@ -36,15 +41,19 @@ io.sockets.on('disconnection', function (socket) {
 
 io.sockets.on('connection', function (socket) {
 	var this_user_id = GAME.last_user_id++;
-	positions[this_user_id] = {x:0,y:0,z:0};
+	GAME.positions[this_user_id] = {x:0,y:0,z:0};
 	socket.set('id', this_user_id);
 	socket.emit( 'connected', GAME.positions );
 	update_client_position( socket, this_user_id );
 
 	console.log( "connected one.." );
 
-	socket.on( 'ship control', function( socket, key ){ socket.get( 'id', function( err, id_value ){
-			GAME.positions[id_value].x--;
+	socket.on( 'ship control', function(key){ socket.get( 'id', function( err, id_value ){
+			
+			if(key == 0 ) GAME.positions[id_value].x--;
+			if(key == 1 ) GAME.positions[id_value].x++;
+			if(key == 2 ) GAME.positions[id_value].y--;
+			if(key == 3 ) GAME.positions[id_value].y++;
 			update_client_position( socket, id_value ); 
 	});});
 
