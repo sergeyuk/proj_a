@@ -33,11 +33,7 @@ var update_client_position = function( socket, id_value ){
 	socket.broadcast.emit( 'pos update', [id_value, GAME.positions[id_value]] );
 };
 
-io.sockets.on('disconnection', function (socket) {
-	socket.get('id', function( err, client_id ) { 
-		socket.broadcast.emit( 'disconnected', client_id );
-	}); 
-});
+
 
 io.sockets.on('connection', function (socket) {
 	var this_user_id = GAME.last_user_id++;
@@ -49,14 +45,18 @@ io.sockets.on('connection', function (socket) {
 	console.log( "connected one.." );
 
 	socket.on( 'ship control', function(key){ socket.get( 'id', function( err, id_value ){
-			
-			if(key == 0 ) GAME.positions[id_value].x--;
+			if(key == 0 ) GAME.positions[id_value].y--;
 			if(key == 1 ) GAME.positions[id_value].x++;
-			if(key == 2 ) GAME.positions[id_value].y--;
-			if(key == 3 ) GAME.positions[id_value].y++;
+			if(key == 2 ) GAME.positions[id_value].y++;
+			if(key == 3 ) GAME.positions[id_value].x--;
 			update_client_position( socket, id_value ); 
 	});});
 
+	socket.on('disconnect', function() {
+		delete GAME.positions[this_user_id];
+		console.log( "broadcasting disconnect message. Client id=" + this_user_id );
+		socket.broadcast.emit( 'disconnected', this_user_id );
+	});
 });
 
 app.listen(8000);

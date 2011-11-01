@@ -16,11 +16,11 @@ var GameClass = function(){
 
 var ShipClass = function(){
 	this.material;
-	this.mesh;
+	this.ship_mesh;
 }
 
 var GAME = new GameClass();
-//var gg_ship = new ShipClass();
+
 
 init();
 init_socket_io();
@@ -36,7 +36,8 @@ animate();
 		});
 
 		socket.on('disconnected', function( data ){
-			delete GAME.objects[data]
+			GAME.scene.remove( GAME.objects[data].ship_mesh );
+			delete GAME.objects[data];
 		});
 
 		socket.on( 'pos update', function( data ){
@@ -125,7 +126,7 @@ animate();
 	}
 	
 	function tick( dt ){
-		if( gg_ship.mesh ) {
-			gg_ship.mesh.position.x = 20*Math.sin(new Date().getTime()/1000);// 10 * dt;
+		if( gg_ship.ship_mesh ) {
+			gg_ship.ship_mesh.position.x = 20*Math.sin(new Date().getTime()/1000);// 10 * dt;
 			}
 	}
