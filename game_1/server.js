@@ -17,6 +17,12 @@ function handler (req, res) {
 	}
 }
 
+var ship_class_file = require( "./ship_class" );
+if (ShipClass){
+	console.log( "seems to be ok" );
+}
+var aship = new ship_class_file.ShipClass();
+
 var GAME = {
 	last_user_id : 0,
 	positions : {}
@@ -61,5 +67,11 @@ io.sockets.on('connection', function (socket) {
 
 app.listen(8000);
 
+var sync_function = function(){
+	//io.sockets.emit('massive_broadcast');
+}
+
+setInterval( sync_function, 1000 );
+//setInterval( function(){ console.log( 'interval tick..' ) } , 10 );
 
 

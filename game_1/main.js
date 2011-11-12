@@ -14,10 +14,6 @@ var GameClass = function(){
 	this.socket;
 }
 
-var ShipClass = function(){
-	this.material;
-	this.ship_mesh;
-}
 
 var GAME = new GameClass();
 
@@ -52,6 +48,7 @@ animate();
 						GAME.objects[client_id].ship_mesh.position.set( client_pos.x,client_pos.y,client_pos.z);
 				}
 			});
+		socket.on( 'massive_broadcast', function(){ console.log( 'massive broadcast indeed' ); });
 		GAME.socket = socket;
 	}	
 
