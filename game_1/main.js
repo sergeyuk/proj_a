@@ -7,13 +7,21 @@ var GameClass = function(){
 	this.camera; 
 	this.scene; 
 	this.renderer; 
-	this.objects={};
+	this.ships={};
 	this.particleLight;
 	this.pointLight;
 	
 	this.socket;
+	this.this_ship_id = -1;
 }
 
+var materials_array = {
+	1 : { map: THREE.ImageUtils.loadTexture( "obj/Gg/Gg.png" ) }
+};
+
+var meshes_array = { 
+	1 : "obj/Gg/Gg.js"
+};
 
 var GAME = new GameClass();
 
@@ -25,55 +33,41 @@ animate();
 	function init_socket_io(){
 		var socket = io.connect();
 
-		// initial data response
 		socket.on('connected', function (data) {
 			console.log('successfully connceted');
-			create_ships_from_server_data(data);
+			var new_user_id = data[0];
+			if( GAME.this_ship_id == -1 ){
+				GAME.this_ship_id = new_user_id;
+				create_ships_from_server_data(data[1]);
+			}
+			else{
+				var one_user_array = {};
+				
+				one_user_array[ new_user_id ] = data[1][new_user_id];
+				create_ships_from_server_data( one_user_array );
+			}
 		});
 
 		socket.on('disconnected', function( data ){
-			GAME.scene.remove( GAME.objects[data].ship_mesh );
-			delete GAME.objects[data];
+			GAME.scene.remove( GAME.ships[data].mesh );
+			delete GAME.ships[data];
 		});
 
-		socket.on( 'pos update', function( data ){
-				var client_id = data[0];
-				var client_pos = data[1];
-				if (GAME.objects[client_id] === undefined){
-					GAME.objects[client_id] = new ShipClass();
-					load_ship( client_id, client_pos );
-				}
-				else{
-					if(GAME.objects[client_id].ship_mesh)
-						GAME.objects[client_id].ship_mesh.position.set( client_pos.x,client_pos.y,client_pos.z);
+		socket.on( 'update', function( data ){
+				for( ship_id in data ){
+					var server_ship = data[ship_id];
+					var client_ship = GAME.ships[ship_id];
+					client_ship.dir			= server_ship.dir;
+					client_ship.pos			= server_ship.pos;
+					client_ship.vel			= server_ship.vel;
+					client_ship.acc 		= server_ship.acc;
+					client_ship.forward_value	= server_ship.forward_value;
+					client_ship.turn_value 		= server_ship.turn_value;
 				}
 			});
-		socket.on( 'massive_broadcast', function(){ console.log( 'massive broadcast indeed' ); });
 		GAME.socket = socket;
 	}	
 
-	function create_ships_from_server_data( data ){
-		for( client_id in data ){
-			GAME.objects[client_id] = new ShipClass();
-			load_ship( client_id, data[client_id] );
-		}
-	}
-
-	function handle_keyboard(event){
-		var keyCode = 0;
-
-		if( event == null ){
-			keyCode = window.event.keyCode;
-			window.event.preventDefault();
-		}
-		else {
-			keyCode = event.keyCode;
-			event.preventDefault();
-		}
-		if(keyCode>=37 && keyCode <=40)	{
-			GAME.socket.emit( 'ship control', 40-keyCode );
-		}
-	}
 
 	function init() {
 		GAME.container = document.createElement( 'div' );
@@ -92,20 +86,30 @@ animate();
 		GAME.pointLight = new THREE.PointLight( 0xFFFFFF );		
 		GAME.pointLight.position.set( 10, 50, 130 );
 		GAME.scene.add(GAME.pointLight);
-		window.addEventListener('keydown',handle_keyboard,false);
+		window.addEventListener('keydown',handle_keyboard_down,false);
+		window.addEventListener('keyup',handle_keyboard_up,false);
 	}
 	
-	function load_ship( client_id, pos ){
-		var new_ship = GAME.objects[client_id];
-		new_ship.material = new THREE.MeshLambertMaterial( {
-			map: THREE.ImageUtils.loadTexture( "obj/Gg/Gg.png" )
-			});
+
+	function create_ships_from_server_data( data ){
+		for( client_id in data ){
+			GAME.ships[client_id] = new ShipClass();
+			load_ship( client_id, data[client_id] );
+		}
+	}
+
+	function load_ship( client_id, server_obj ){
+		var new_ship = GAME.ships[client_id];
+		new_ship.set_position( server_obj.pos );
+
+		var mesh_id = server_obj.mesh;
+		new_ship.material = new THREE.MeshLambertMaterial( materials_array[mesh_id] );
 			
 		var loader = new THREE.JSONLoader( true );	
-		loader.load( { model: "obj/Gg/Gg.js", callback: function( geometry ) { 
-			new_ship.ship_mesh = new THREE.Mesh( geometry, new_ship.material );
-			GAME.scene.add(new_ship.ship_mesh);
-			new_ship.ship_mesh.position.set( pos.x, pos.y, pos.z );
+		loader.load( { model: meshes_array[mesh_id], callback: function( geometry ) { 
+			new_ship.mesh = new THREE.Mesh( geometry, new_ship.material );
+			GAME.scene.add(new_ship.mesh);
+			new_ship.mesh.position.set( new_ship.pos.x, new_ship.pos.y, new_ship.pos.z );
 			} } );
 	}
 	
@@ -113,17 +117,51 @@ animate();
 	
 	function animate() {
 		requestAnimationFrame( animate );
-		/*
+		
 		var timer = new Date().getTime() / 1000;
 		var dt = timer - last_time_t;
 		last_time_t = timer;
 		if( dt > 0.033 ) dt = 0.033;
-		tick( dt );*/
+		tick( dt );
 		GAME.renderer.render( GAME.scene, GAME.camera );
 	}
 	
 	function tick( dt ){
-		if( gg_ship.ship_mesh ) {
-			gg_ship.ship_mesh.position.x = 20*Math.sin(new Date().getTime()/1000);// 10 * dt;
-			}
+		for( ship in GAME.ships ){
+			GAME.ships[ship].tick( dt );
+			GAME.ships[ship].update_render();
+		}
 	}
+
+	function handle_keyboard_down(event){
+		var keyCode = 0;
+
+		if( event == null ){
+			keyCode = window.event.keyCode;
+			window.event.preventDefault();
+		}
+		else {
+			keyCode = event.keyCode;
+			event.preventDefault();
+		}
+		if(keyCode>=37 && keyCode <=40)	{
+			GAME.socket.emit( 'ship control on', 40-keyCode );
+		}
+	}
+
+	function handle_keyboard_up(event){
+		var keyCode = 0;
+
+		if( event == null ){
+			keyCode = window.event.keyCode;
+			window.event.preventDefault();
+		}
+		else {
+			keyCode = event.keyCode;
+			event.preventDefault();
+		}
+		if(keyCode>=37 && keyCode <=40)	{
+			GAME.socket.emit( 'ship control off', 40-keyCode );
+		}
+	}
+

@@ -1,4 +1,5 @@
 var url = require("url");
+var ShipClass = require( "./ship_class" ).ShipClass;
 
 function handler (req, res) {
 	if (req.method === "GET" || req.method === "HEAD") {
@@ -17,15 +18,11 @@ function handler (req, res) {
 	}
 }
 
-var ship_class_file = require( "./ship_class" );
-if (ShipClass){
-	console.log( "seems to be ok" );
-}
-var aship = new ship_class_file.ShipClass();
 
 var GAME = {
 	last_user_id : 0,
-	positions : {}
+	default_spawn_point : {x:0,y:0,z:0},
+	ships : {}
 };
 
 var app = require('http').createServer(handler)
@@ -34,32 +31,36 @@ var fs = require('fs')
 
 console.log("start the stuff....");
 
-var update_client_position = function( socket, id_value ){
-	socket.emit( 'pos update', [id_value, GAME.positions[id_value]] );
-	socket.broadcast.emit( 'pos update', [id_value, GAME.positions[id_value]] );
-};
-
-
-
 io.sockets.on('connection', function (socket) {
+	
 	var this_user_id = GAME.last_user_id++;
-	GAME.positions[this_user_id] = {x:0,y:0,z:0};
-	socket.set('id', this_user_id);
-	socket.emit( 'connected', GAME.positions );
-	update_client_position( socket, this_user_id );
-
+//	socket.set('id', this_user_id);	
 	console.log( "connected one.." );
 
-	socket.on( 'ship control', function(key){ socket.get( 'id', function( err, id_value ){
-			if(key == 0 ) GAME.positions[id_value].y--;
-			if(key == 1 ) GAME.positions[id_value].x++;
-			if(key == 2 ) GAME.positions[id_value].y++;
-			if(key == 3 ) GAME.positions[id_value].x--;
-			update_client_position( socket, id_value ); 
-	});});
+	var new_ship = new ShipClass();
+	new_ship.mesh = 1;
+	new_ship.set_position( GAME.default_spawn_point );
+	GAME.ships[this_user_id] = new_ship;
+
+	socket.emit( "connected", [this_user_id, GAME.ships] );
+	socket.broadcast.emit( 'connected', [this_user_id, GAME.ships] );	
+
+	socket.on( 'ship control on', function(key){ 
+			if(key == 0 ) GAME.ships[this_user_id].set_forward( -1 );
+			if(key == 1 ) GAME.ships[this_user_id].set_turn( 1 );
+			if(key == 2 ) GAME.ships[this_user_id].set_forward( 1 );
+			if(key == 3 ) GAME.ships[this_user_id].set_turn( -1 );
+	});
+
+	socket.on( 'ship control off', function(key){ 
+			if(key == 0 ) GAME.ships[this_user_id].set_forward( 0 );
+			if(key == 1 ) GAME.ships[this_user_id].set_turn( 0 );
+			if(key == 2 ) GAME.ships[this_user_id].set_forward( 0 );
+			if(key == 3 ) GAME.ships[this_user_id].set_turn( 0 );
+	});
 
 	socket.on('disconnect', function() {
-		delete GAME.positions[this_user_id];
+		delete GAME.ships[this_user_id];
 		console.log( "broadcasting disconnect message. Client id=" + this_user_id );
 		socket.broadcast.emit( 'disconnected', this_user_id );
 	});
@@ -68,10 +69,11 @@ io.sockets.on('connection', function (socket) {
 app.listen(8000);
 
 var sync_function = function(){
-	//io.sockets.emit('massive_broadcast');
+	for( var ship_id in GAME.ships ){
+		GAME.ships[ship_id].tick( 1 );
+	}
+	io.sockets.emit('update', GAME.ships);
 }
 
 setInterval( sync_function, 1000 );
-//setInterval( function(){ console.log( 'interval tick..' ) } , 10 );
-
 
