@@ -54,6 +54,8 @@ animate();
 		});
 
 		socket.on( 'update', function( data ){
+return;
+console.log('update received');
 				for( ship_id in data ){
 					var server_ship = data[ship_id];
 					var client_ship = GAME.ships[ship_id];
@@ -145,6 +147,13 @@ animate();
 			event.preventDefault();
 		}
 		if(keyCode>=37 && keyCode <=40)	{
+			var key = 40-keyCode;
+			var this_user_id = GAME.this_ship_id;
+			if(key == 0 ) GAME.ships[this_user_id].set_forward( -1 );
+			if(key == 1 ) GAME.ships[this_user_id].set_turn( 1 );
+			if(key == 2 ) GAME.ships[this_user_id].set_forward( 1 );
+			if(key == 3 ) GAME.ships[this_user_id].set_turn( -1 );
+			console.log('Pressed the key. is forward = ' + GAME.ships[this_user_id].forward_value );
 			GAME.socket.emit( 'ship control on', 40-keyCode );
 		}
 	}
@@ -161,6 +170,14 @@ animate();
 			event.preventDefault();
 		}
 		if(keyCode>=37 && keyCode <=40)	{
+			var key = 40-keyCode;
+			var this_user_id = GAME.this_ship_id;
+
+			if(key == 0 ) GAME.ships[this_user_id].set_forward( 0 );
+			if(key == 1 ) GAME.ships[this_user_id].set_turn( 0 );
+			if(key == 2 ) GAME.ships[this_user_id].set_forward( 0 );
+			if(key == 3 ) GAME.ships[this_user_id].set_turn( 0 );
+			console.log('Released the key. is forward = ' + GAME.ships[this_user_id].forward_value );
 			GAME.socket.emit( 'ship control off', 40-keyCode );
 		}
 	}
