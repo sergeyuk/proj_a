@@ -41,28 +41,35 @@ io.sockets.on('connection', function (socket) {
 	new_ship.mesh = 1;
 	new_ship.set_position( GAME.default_spawn_point );
 	GAME.ships[this_user_id] = new_ship;
-
+	socket.set('id', this_user_id );
 	socket.emit( "connected", [this_user_id, GAME.ships] );
 	socket.broadcast.emit( 'connected', [this_user_id, GAME.ships] );	
 
 	socket.on( 'ship control on', function(key){ 
-			if(key == 0 ) GAME.ships[this_user_id].set_forward( -1 );
-			if(key == 1 ) GAME.ships[this_user_id].set_turn( 1 );
-			if(key == 2 ) GAME.ships[this_user_id].set_forward( 1 );
-			if(key == 3 ) GAME.ships[this_user_id].set_turn( -1 );
+		socket.get( 'id', function( err, user_id ){
+			console.log( "ship control on. id=" + user_id );
+			if(key == 0 ) GAME.ships[user_id].set_forward( -1 );
+			if(key == 1 ) GAME.ships[user_id].set_turn( 1 );
+			if(key == 2 ) GAME.ships[user_id].set_forward( 1 );
+			if(key == 3 ) GAME.ships[user_id].set_turn( -1 );
+		});
 	});
 
 	socket.on( 'ship control off', function(key){ 
-			if(key == 0 ) GAME.ships[this_user_id].set_forward( 0 );
-			if(key == 1 ) GAME.ships[this_user_id].set_turn( 0 );
-			if(key == 2 ) GAME.ships[this_user_id].set_forward( 0 );
-			if(key == 3 ) GAME.ships[this_user_id].set_turn( 0 );
+		socket.get( 'id', function( err, user_id ){
+			if(key == 0 ) GAME.ships[user_id].set_forward( 0 );
+			if(key == 1 ) GAME.ships[user_id].set_turn( 0 );
+			if(key == 2 ) GAME.ships[user_id].set_forward( 0 );
+			if(key == 3 ) GAME.ships[user_id].set_turn( 0 );
+		});
 	});
 
 	socket.on('disconnect', function() {
-		delete GAME.ships[this_user_id];
-		console.log( "broadcasting disconnect message. Client id=" + this_user_id );
-		socket.broadcast.emit( 'disconnected', this_user_id );
+		socket.get( 'id', function( err, user_id ){
+			delete GAME.ships[user_id];
+			console.log( "broadcasting disconnect message. Client id=" + user_id );
+			socket.broadcast.emit( 'disconnected', user_id );
+		});
 	});
 });
 
@@ -70,10 +77,10 @@ app.listen(8000);
 
 var sync_function = function(){
 	for( var ship_id in GAME.ships ){
-		GAME.ships[ship_id].tick( 1 );
+		GAME.ships[ship_id].tick( 0.1 );
 	}
 	io.sockets.emit('update', GAME.ships);
 }
 
-setInterval( sync_function, 1000 );
+setInterval( sync_function, 100 );
 

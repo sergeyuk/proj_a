@@ -54,8 +54,8 @@ animate();
 		});
 
 		socket.on( 'update', function( data ){
-return;
-console.log('update received');
+//return;
+//console.log('update received');
 				for( ship_id in data ){
 					var server_ship = data[ship_id];
 					var client_ship = GAME.ships[ship_id];
@@ -65,6 +65,8 @@ console.log('update received');
 					client_ship.acc 		= server_ship.acc;
 					client_ship.forward_value	= server_ship.forward_value;
 					client_ship.turn_value 		= server_ship.turn_value;
+					client_ship.angle		= server_ship.angle;
+					client_ship.angular_vel		= server_ship.angular_vel;
 				}
 			});
 		GAME.socket = socket;

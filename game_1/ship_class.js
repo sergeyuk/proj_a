@@ -67,7 +67,7 @@ var ShipClass = function(){
 		}
 	}
 
-	this.set_position = function( _pos )	{ this.pos = _pos; }
+	this.set_position = function( _pos )	{ this.pos.x = _pos.x; this.pos.y = _pos.y; this.pos.z = _pos.z;}
 	this.get_position = function()		{ return this.pos; }
 	this.get_velocity = function()		{ return this.vel; }
 	this.get_acceleration = function() 	{ return this.acc; }
