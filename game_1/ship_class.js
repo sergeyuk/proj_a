@@ -4,10 +4,12 @@ var ShipClass = function(){
 	this.dir		= {x:0,y:1,z:0};
 
 	this.pos		= {x:0,y:0,z:0};
+	this.new_pos		= {x:0,y:0,z:0};
 	this.vel		= 0;//[0,0,0];
 	this.acc 		= 0;//[0,0,0];
 
 	this.angle		= 0;
+	this.new_angle		= 0;
 	this.angular_vel	= 0;
 
 	this.forward_value	= 0;
@@ -27,6 +29,10 @@ var ShipClass = function(){
 		if( this.forward_value == 1 ){
 			console.log( 'dt=' + dt + 'velocity=' + this.vel );
 		}
+
+		var set_newpos_instantly = ( 	this.pos.x == this.new_pos.x && 
+						this.pos.y == this.new_pos.y && 
+						this.pos.z == this.new_pos.z );
 
 		this.pos.x = this.pos.x + this.dir.x * this.vel * dt;
 		this.pos.y = this.pos.y + this.dir.y * this.vel * dt;
