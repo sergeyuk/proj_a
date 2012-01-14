@@ -4,7 +4,8 @@ if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 var GameClass = function(){
 	this.container;
 	this.stats;
-	this.camera; 
+	this.camera;
+	this.cameraTarget;
 	this.scene; 
 	this.renderer; 
 	this.ships={};
@@ -77,8 +78,12 @@ animate();
 		GAME.container = document.createElement( 'div' );
 		document.body.appendChild( GAME.container );
 
-		GAME.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-		GAME.camera.position.set( 0, 0, 50 );
+		GAME.camera = new THREE.CombinedCamera( window.innerWidth, window.innerHeight, 45, 1, 10000, -2000, 10000 );
+		GAME.camera.position.set( 0, -15, 5 );
+		GAME.camera.up.x = GAME.camera.up.y = 0;
+		GAME.camera.up.z = 1;
+		GAME.cameraTarget = new THREE.Vector3(0,0,0); 
+		GAME.camera.lookAt( GAME.cameraTarget );
 
 		GAME.scene = new THREE.Scene();
 		
@@ -90,6 +95,11 @@ animate();
 		GAME.pointLight = new THREE.PointLight( 0xFFFFFF );		
 		GAME.pointLight.position.set( 10, 50, 130 );
 		GAME.scene.add(GAME.pointLight);
+		
+		var plane = new THREE.Mesh( new THREE.PlaneGeometry(1000,1000,20,20), new THREE.MeshBasicMaterial( { color:0x555555, wireframe:true} ) );
+
+		GAME.scene.add( plane );
+
 		window.addEventListener('keydown',handle_keyboard_down,false);
 		window.addEventListener('keyup',handle_keyboard_up,false);
 	}
@@ -127,6 +137,20 @@ animate();
 		last_time_t = timer;
 		if( dt > 0.033 ) dt = 0.033;
 		tick( dt );
+
+		if( GAME.this_ship_id == -1 ){
+		}
+		else{
+			var this_ship = GAME.ships[GAME.this_ship_id];
+			if( this_ship ){
+
+				GAME.camera.position.x = -25 * this_ship.dir.x + this_ship.pos.x;
+				GAME.camera.position.y = -25 * this_ship.dir.y + this_ship.pos.y;
+				//console.log( "updated camera x,y=" + GAME.camera.position.x + ', ' + GAME.camera.position.y );
+				GAME.cameraTarget.set( this_ship.pos.x, this_ship.pos.y, this_ship.pos.z );	
+				GAME.camera.lookAt( GAME.cameraTarget );
+			}
+		}
 		GAME.renderer.render( GAME.scene, GAME.camera );
 	}
 	
