@@ -1,5 +1,5 @@
 function normalize( vec ) {
-	var denominator = Math.sqrt( vec.x*vec.x + vec.y*vec.y + vec.z*vec.z );
+	var denominator = veclen( vec );
 
 	var return_vec = { x:0, y:0, z:0 };
 	if( denominator > 0 ){
@@ -10,14 +10,19 @@ function normalize( vec ) {
 	return return_vec;	
 };
 
+function veclen( vec ){
+	return Math.sqrt( vec.x*vec.x + vec.y*vec.y + vec.z*vec.z );
+}
+
+
 var ShipClass = function(){
 	this.material;
 	this.mesh;
 	this.dir		= {x:0,y:1,z:0};
-	this.correction_dir	= {x:0,y:1,z:0};
+	this.correction_dir	= {x:0,y:0,z:0};
+	this.correction_length 	= 0;
 
 	this.pos		= {x:0,y:0,z:0};
-	this.new_pos		= {x:0,y:0,z:0};
 	this.vel		= 0;//[0,0,0];
 	this.acc 		= 0;//[0,0,0];
 
@@ -27,6 +32,56 @@ var ShipClass = function(){
 
 	this.forward_value	= 0;
 	this.turn_value		= 0;
+
+	this.set_updated_position = function( new_pos ){
+		//compute correction dir and length
+		var dir = {};
+		dir.x = new_pos.x - this.pos.x;
+		dir.y = new_pos.y - this.pos.y;
+		dir.z = new_pos.z - this.pos.z;
+
+		var length = veclen( dir );
+
+		if( length > 0 ){
+			dir.x = (dir.x / length ); 
+			dir.y = (dir.y / length ); 
+			dir.z = (dir.z / length );
+		}
+		this.correction_dir = dir;
+		this.correction_length = length;
+	};
+
+	this.apply_pos_correction = function( dt ){
+		if( this.correction_length > 0 ){
+			console.log( "correction length: " + this.correction_length );
+			var correction_speed = 8.0 + this.correction_length;
+			
+			var new_pos = {};
+			new_pos.x = this.pos.x + this.correction_dir.x * correction_speed * dt;
+			new_pos.y = this.pos.y + this.correction_dir.y * correction_speed * dt;
+			new_pos.z = this.pos.z + this.correction_dir.z * correction_speed * dt;
+
+			var delta_vec = {};
+			delta_vec.x = new_pos.x - this.pos.x;			
+			delta_vec.y = new_pos.y - this.pos.y;
+			delta_vec.z = new_pos.z - this.pos.z;
+			
+			var delta_vec_len = veclen( delta_vec );
+
+			if( delta_vec_len > this.correction_length || ((this.correction_length - delta_vec_len) < 0.1) ){
+				this.pos.x += this.correction_dir.x * this.correction_length;
+				this.pos.y += this.correction_dir.y * this.correction_length;
+				this.pos.z += this.correction_dir.z * this.correction_length;				
+				this.correction_length = 0;
+			}
+			else{
+				this.pos.x = new_pos.x;
+				this.pos.y = new_pos.y;
+				this.pos.z = new_pos.z;
+				this.correction_length -= delta_vec_len;
+			}
+		}		 
+	};
 
 	this.tick_position = function( dt ){
 		var forward_acceleration = 21.0;
@@ -43,24 +98,11 @@ var ShipClass = function(){
 			console.log( 'dt=' + dt + 'velocity=' + this.vel );
 		}
 
-		var set_newpos_instantly = ( 	this.pos.x == this.new_pos.x && 
-						this.pos.y == this.new_pos.y && 
-						this.pos.z == this.new_pos.z );
-		var correction_dir = { x:0, y:0, z:0 };
-		//correction_dir.x = this.new_pos.x - this.pos.x;
-		//correction_dir.y = this.new_pos.y - this.pos.y;
-		//correction_dir.z = this.new_pos.z - this.pos.z;
-		correction_dir = normalize( correction_dir );		
+		this.apply_pos_correction( dt );
 
-		var updated_dir = {};
-		updated_dir.x = this.dir.x + correction_dir.x;
-		updated_dir.y = this.dir.y + correction_dir.y;
-		updated_dir.z = this.dir.z + correction_dir.z;
-		updated_dir = normalize( updated_dir );
-
-		this.pos.x = this.pos.x + updated_dir.x * this.vel * dt;
-		this.pos.y = this.pos.y + updated_dir.y * this.vel * dt;
-		this.pos.z = this.pos.z + updated_dir.z * this.vel * dt;
+		this.pos.x = this.pos.x + this.dir.x * this.vel * dt;
+		this.pos.y = this.pos.y + this.dir.y * this.vel * dt;
+		this.pos.z = this.pos.z + this.dir.z * this.vel * dt;
 	}
 
 	this.tick_rotation = function( dt ) {
@@ -84,13 +126,13 @@ var ShipClass = function(){
 	this.update_render = function(){
 		if( this.mesh ){
 			if( this.mesh.position.y != this.pos.y ) {
-				console.log('Update render pos for a ship. Change pos from ('  
+				/*console.log('Update render pos for a ship. Change pos from ('  
 					+ this.mesh.position.x + ','
 					+ this.mesh.position.y + ','
 					+ this.mesh.position.z + ') to (' 
 					+ this.pos.x + ','
 					+ this.pos.x + ','
-					+ this.pos.x + ')');
+					+ this.pos.x + ')'); */
 			}
 			this.mesh.position.set( this.pos.x, this.pos.y, this.pos.z);
 			this.mesh.rotation.z = -this.angle * Math.PI / 180;

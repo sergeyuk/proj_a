@@ -60,13 +60,13 @@ animate();
 				for( ship_id in data ){
 					var server_ship = data[ship_id];
 					var client_ship = GAME.ships[ship_id];
-					//client_ship.dir			= server_ship.dir;
-					client_ship.new_pos			= server_ship.pos;
+					client_ship.set_updated_position( server_ship.pos );
 					client_ship.vel			= server_ship.vel;
 					client_ship.acc 		= server_ship.acc;
 					client_ship.forward_value	= server_ship.forward_value;
 					client_ship.turn_value 		= server_ship.turn_value;
-					client_ship.new_angle		= server_ship.angle;
+					//client_ship.new_angle		= server_ship.angle;
+					client_ship.angle		= server_ship.angle;
 					client_ship.angular_vel		= server_ship.angular_vel;
 				}
 			});
