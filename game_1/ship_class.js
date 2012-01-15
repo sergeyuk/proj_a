@@ -1,7 +1,20 @@
+function normalize( vec ) {
+	var denominator = Math.sqrt( vec.x*vec.x + vec.y*vec.y + vec.z*vec.z );
+
+	var return_vec = { x:0, y:0, z:0 };
+	if( denominator > 0 ){
+		return_vec.x = (vec.x / denominator ); 
+		return_vec.y = (vec.y / denominator ); 
+		return_vec.z = (vec.z / denominator );
+	}
+	return return_vec;	
+};
+
 var ShipClass = function(){
 	this.material;
 	this.mesh;
 	this.dir		= {x:0,y:1,z:0};
+	this.correction_dir	= {x:0,y:1,z:0};
 
 	this.pos		= {x:0,y:0,z:0};
 	this.new_pos		= {x:0,y:0,z:0};
@@ -16,8 +29,8 @@ var ShipClass = function(){
 	this.turn_value		= 0;
 
 	this.tick_position = function( dt ){
-		var forward_acceleration = 5.0;
-		var friction_acceleration = 0.5 * this.vel;
+		var forward_acceleration = 21.0;
+		var friction_acceleration = 0.3 * this.vel;
 		this.acc = forward_acceleration * this.forward_value - friction_acceleration;		
 
 		this.vel = this.vel + this.acc * dt;
@@ -33,10 +46,21 @@ var ShipClass = function(){
 		var set_newpos_instantly = ( 	this.pos.x == this.new_pos.x && 
 						this.pos.y == this.new_pos.y && 
 						this.pos.z == this.new_pos.z );
+		var correction_dir = { x:0, y:0, z:0 };
+		//correction_dir.x = this.new_pos.x - this.pos.x;
+		//correction_dir.y = this.new_pos.y - this.pos.y;
+		//correction_dir.z = this.new_pos.z - this.pos.z;
+		correction_dir = normalize( correction_dir );		
 
-		this.pos.x = this.pos.x + this.dir.x * this.vel * dt;
-		this.pos.y = this.pos.y + this.dir.y * this.vel * dt;
-		this.pos.z = this.pos.z + this.dir.z * this.vel * dt;
+		var updated_dir = {};
+		updated_dir.x = this.dir.x + correction_dir.x;
+		updated_dir.y = this.dir.y + correction_dir.y;
+		updated_dir.z = this.dir.z + correction_dir.z;
+		updated_dir = normalize( updated_dir );
+
+		this.pos.x = this.pos.x + updated_dir.x * this.vel * dt;
+		this.pos.y = this.pos.y + updated_dir.y * this.vel * dt;
+		this.pos.z = this.pos.z + updated_dir.z * this.vel * dt;
 	}
 
 	this.tick_rotation = function( dt ) {
@@ -80,7 +104,10 @@ var ShipClass = function(){
 	this.get_direction = function() 	{ return this.dir; }
 	this.set_forward = function( fwd_value) { this.forward_value = fwd_value; }
 	this.set_turn = function( turn_val )	{ this.turn_value = turn_val; }
+	this.get_forward = function() { return this.forward_value; }
+	this.get_turn = function()	{ return this.turn_value; }
 }
+
 
 
 try{

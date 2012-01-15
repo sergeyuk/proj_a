@@ -70,6 +70,14 @@ animate();
 					client_ship.angular_vel		= server_ship.angular_vel;
 				}
 			});
+		socket.on( 'ship control update', function( data ){
+				var ship_id = data[0];
+				var forward = data[1];
+				var turn = data[2];
+				var client_ship = GAME.ships[ship_id];
+				client_ship.set_forward( forward );
+				client_ship.set_turn( turn );
+			});
 		GAME.socket = socket;
 	}	
 
