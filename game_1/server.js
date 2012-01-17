@@ -22,7 +22,7 @@ function handler (req, res) {
 var GAME = {
 	last_user_id : 0,
 	default_spawn_point : {x:0,y:0,z:0},
-	ships : {}
+	world : new WorldClass()
 };
 
 var app = require('http').createServer(handler)
@@ -30,7 +30,7 @@ var io = require('socket.io').listen(app)
 var fs = require('fs')
 
 console.log("start the stuff....");
-//io.set( 'log level', 1 );
+io.set( 'log level', 0 );
 
 io.sockets.on('connection', function (socket) {
 	
@@ -41,15 +41,15 @@ io.sockets.on('connection', function (socket) {
 	var new_ship = new ShipClass();
 	new_ship.mesh = 1;
 	new_ship.set_position( GAME.default_spawn_point );
-	GAME.ships[this_user_id] = new_ship;
+	GAME.world.ships[this_user_id] = new_ship;
 	socket.set('id', this_user_id );
-	socket.emit( "connected", [this_user_id, GAME.ships] );
-	socket.broadcast.emit( 'connected', [this_user_id, GAME.ships] );	
+	socket.emit( "connected", [this_user_id, GAME.world.ships] );
+	socket.broadcast.emit( 'connected', [this_user_id, GAME.world.ships] );	
 
 	socket.on( 'ship control on', function(key){ 
 		socket.get( 'id', function( err, user_id ){
 			console.log( "ship control on. id=" + user_id );
-			var this_ship = GAME.ships[user_id];
+			var this_ship = GAME.world.ships[user_id];
 			var fwd = this_ship.get_forward();
 			var turn = this_ship.get_turn();
 			if(key == 0 ) this_ship.set_forward( -1 );
@@ -65,7 +65,7 @@ io.sockets.on('connection', function (socket) {
 
 	socket.on( 'ship control off', function(key){ 
 		socket.get( 'id', function( err, user_id ){
-			var this_ship = GAME.ships[user_id];
+			var this_ship = GAME.world.ships[user_id];
 			var fwd = this_ship.get_forward();
 			var turn = this_ship.get_turn();
 			if(key == 0 ) this_ship.set_forward( 0 );
@@ -81,7 +81,7 @@ io.sockets.on('connection', function (socket) {
 
 	socket.on('disconnect', function() {
 		socket.get( 'id', function( err, user_id ){
-			delete GAME.ships[user_id];
+			delete GAME.world.ships[user_id];
 			console.log( "broadcasting disconnect message. Client id=" + user_id );
 			socket.broadcast.emit( 'disconnected', user_id );
 		});
@@ -91,10 +91,10 @@ io.sockets.on('connection', function (socket) {
 app.listen(8000);
 
 var sync_function = function(){
-	for( var ship_id in GAME.ships ){
-		GAME.ships[ship_id].tick( 0.1 );
+	for( var ship_id in GAME.world.ships ){
+		GAME.world.ships[ship_id].tick( 0.1 );
 	}
-	io.sockets.emit('update', GAME.ships);
+	io.sockets.emit('update', GAME.world.ships);
 }
 
 setInterval( sync_function, 100 );

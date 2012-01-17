@@ -8,7 +8,7 @@ var GameClass = function(){
 	this.cameraTarget;
 	this.scene; 
 	this.renderer; 
-	this.ships={};
+	this.world;
 	this.particleLight;
 	this.pointLight;
 	
@@ -25,7 +25,7 @@ var meshes_array = {
 };
 
 var GAME = new GameClass();
-
+GAME.world = new WorldClass();
 
 init();
 init_socket_io();
@@ -50,23 +50,20 @@ animate();
 		});
 
 		socket.on('disconnected', function( data ){
-			GAME.scene.remove( GAME.ships[data].mesh );
-			delete GAME.ships[data];
+			GAME.scene.remove( GAME.world.ships[data].mesh );
+			delete GAME.world.ships[data];
 		});
 
 		socket.on( 'update', function( data ){
-//return;
-//console.log('update received');
 				for( ship_id in data ){
 					var server_ship = data[ship_id];
-					var client_ship = GAME.ships[ship_id];
+					var client_ship = GAME.world.ships[ship_id];
 					client_ship.set_updated_position( server_ship.pos );
 					client_ship.vel			= server_ship.vel;
 					client_ship.acc 		= server_ship.acc;
 					client_ship.forward_value	= server_ship.forward_value;
 					client_ship.turn_value 		= server_ship.turn_value;
-					//client_ship.new_angle		= server_ship.angle;
-					client_ship.angle		= server_ship.angle;
+					client_ship.set_updated_angle( server_ship.angle );
 					client_ship.angular_vel		= server_ship.angular_vel;
 				}
 			});
@@ -74,7 +71,7 @@ animate();
 				var ship_id = data[0];
 				var forward = data[1];
 				var turn = data[2];
-				var client_ship = GAME.ships[ship_id];
+				var client_ship = GAME.world.ships[ship_id];
 				client_ship.set_forward( forward );
 				client_ship.set_turn( turn );
 			});
@@ -115,13 +112,13 @@ animate();
 
 	function create_ships_from_server_data( data ){
 		for( client_id in data ){
-			GAME.ships[client_id] = new ShipClass();
+			GAME.world.ships[client_id] = new ShipClass();
 			load_ship( client_id, data[client_id] );
 		}
 	}
 
 	function load_ship( client_id, server_obj ){
-		var new_ship = GAME.ships[client_id];
+		var new_ship = GAME.world.ships[client_id];
 		new_ship.set_position( server_obj.pos );
 
 		var mesh_id = server_obj.mesh;
@@ -149,7 +146,7 @@ animate();
 		if( GAME.this_ship_id == -1 ){
 		}
 		else{
-			var this_ship = GAME.ships[GAME.this_ship_id];
+			var this_ship = GAME.world.ships[GAME.this_ship_id];
 			if( this_ship ){
 
 				GAME.camera.position.x = -25 * this_ship.dir.x + this_ship.pos.x;
@@ -163,9 +160,9 @@ animate();
 	}
 	
 	function tick( dt ){
-		for( ship in GAME.ships ){
-			GAME.ships[ship].tick( dt );
-			GAME.ships[ship].update_render();
+		for( ship in GAME.world.ships ){
+			GAME.world.ships[ship].tick( dt );
+			GAME.world.ships[ship].update_render();
 		}
 	}
 
@@ -183,11 +180,11 @@ animate();
 		if(keyCode>=37 && keyCode <=40)	{
 			var key = 40-keyCode;
 			var this_user_id = GAME.this_ship_id;
-			if(key == 0 ) GAME.ships[this_user_id].set_forward( -1 );
-			if(key == 1 ) GAME.ships[this_user_id].set_turn( 1 );
-			if(key == 2 ) GAME.ships[this_user_id].set_forward( 1 );
-			if(key == 3 ) GAME.ships[this_user_id].set_turn( -1 );
-			console.log('Pressed the key. is forward = ' + GAME.ships[this_user_id].forward_value );
+			if(key == 0 ) GAME.world.ships[this_user_id].set_forward( -1 );
+			if(key == 1 ) GAME.world.ships[this_user_id].set_turn( 1 );
+			if(key == 2 ) GAME.world.ships[this_user_id].set_forward( 1 );
+			if(key == 3 ) GAME.world.ships[this_user_id].set_turn( -1 );
+			console.log('Pressed the key. is forward = ' + GAME.world.ships[this_user_id].forward_value );
 			GAME.socket.emit( 'ship control on', 40-keyCode );
 		}
 	}
@@ -207,11 +204,11 @@ animate();
 			var key = 40-keyCode;
 			var this_user_id = GAME.this_ship_id;
 
-			if(key == 0 ) GAME.ships[this_user_id].set_forward( 0 );
-			if(key == 1 ) GAME.ships[this_user_id].set_turn( 0 );
-			if(key == 2 ) GAME.ships[this_user_id].set_forward( 0 );
-			if(key == 3 ) GAME.ships[this_user_id].set_turn( 0 );
-			console.log('Released the key. is forward = ' + GAME.ships[this_user_id].forward_value );
+			if(key == 0 ) GAME.world.ships[this_user_id].set_forward( 0 );
+			if(key == 1 ) GAME.world.ships[this_user_id].set_turn( 0 );
+			if(key == 2 ) GAME.world.ships[this_user_id].set_forward( 0 );
+			if(key == 3 ) GAME.world.ships[this_user_id].set_turn( 0 );
+			console.log('Released the key. is forward = ' + GAME.world.ships[this_user_id].forward_value );
 			GAME.socket.emit( 'ship control off', 40-keyCode );
 		}
 	}

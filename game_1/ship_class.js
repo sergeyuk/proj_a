@@ -15,6 +15,7 @@ function veclen( vec ){
 }
 
 
+
 var ShipClass = function(){
 	this.material;
 	this.mesh;
@@ -27,11 +28,29 @@ var ShipClass = function(){
 	this.acc 		= 0;//[0,0,0];
 
 	this.angle		= 0;
-	this.new_angle		= 0;
+	this.delta_angle	= 0;
 	this.angular_vel	= 0;
 
 	this.forward_value	= 0;
 	this.turn_value		= 0;
+
+	this.set_updated_angle = function( new_angle ){
+		//this.delta_angle = new_angle - this.angle;
+		this.angle = new_angle;
+	};
+
+	this.apply_angle_correction = function( dt ){
+		if( this.delta_angle != 0 ){
+			var sign = this.delta_angle < 0 ? -1 : 1;
+			var correction_angular_speed = 60.0 + this.delta_angle;
+			var abs_angle = Math.abs( this.delta_angle );
+			var value_to_change = correction_angular_speed * dt;
+			value_to_change = Math.min( value_to_change, abs_angle );
+			value_to_change *= sign;
+			this.angle += value_to_change;
+			this.delta_angle -= value_to_change;
+		}
+	};
 
 	this.set_updated_position = function( new_pos ){
 		//compute correction dir and length
@@ -106,6 +125,8 @@ var ShipClass = function(){
 	}
 
 	this.tick_rotation = function( dt ) {
+		this.apply_angle_correction( dt );
+
 		var turn_speed = 60.0;
 		this.angular_vel = turn_speed * this.turn_value;
 		this.angle += this.angular_vel * dt;
@@ -150,10 +171,16 @@ var ShipClass = function(){
 	this.get_turn = function()	{ return this.turn_value; }
 }
 
-
+var WorldClass = function(){
+	this.ships = {};
+	this.projectiles = {};
+};
 
 try{
 	exports.ShipClass = ShipClass;
 	global.ShipClass = ShipClass;
+	
+	exports.WorldClass = WorldClass;
+	global.WorldClass = WorldClass;
 }
 catch(e){}
