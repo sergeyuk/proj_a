@@ -171,9 +171,16 @@ var ShipClass = function(){
 	this.get_turn = function()	{ return this.turn_value; }
 }
 
+var ProjectileClass = function() {
+	this.dir;
+	this.velocity;
+	this.position;
+	this.owner_id;
+};
+
 var WorldClass = function(){
 	this.ships = {};
-	this.projectiles = {};
+	this.projectiles = [];
 };
 
 try{
@@ -182,5 +189,8 @@ try{
 	
 	exports.WorldClass = WorldClass;
 	global.WorldClass = WorldClass;
+	
+	exports.ProjectileClass = ProjectileClass;
+	global.ProjectileClass = ProjectileClass;
 }
 catch(e){}
