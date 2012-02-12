@@ -31,6 +31,17 @@ init();
 init_socket_io();
 animate();
 
+	function create_projectile_mesh( projectile_id ){
+		var projectile_mesh = new THREE.Mesh( new THREE.SphereGeometry( 1, 32, 16 ), new THREE.MeshBasicMaterial( { color:0xFF0000, wireframe:false} ) );
+		GAME.scene.add( projectile_mesh );
+		if( GAME.world.projectiles.length > projectile_id ){
+			GAME.world.projectiles[projectile_id].mesh = projectile_mesh;
+		}
+		else{
+			alert( 'wrong projectile ID passed' );
+		}
+	}
+
 	function create_particle_system(){
 		var geometry = new THREE.Geometry();
 		var sprite = THREE.ImageUtils.loadTexture( "textures/sprites/spark1.png" );
@@ -161,7 +172,6 @@ animate();
 		else{
 			var this_ship = GAME.world.ships[GAME.this_ship_id];
 			if( this_ship ){
-
 				GAME.camera.position.x = -25 * this_ship.dir.x + this_ship.pos.x;
 				GAME.camera.position.y = -25 * this_ship.dir.y + this_ship.pos.y;
 				//console.log( "updated camera x,y=" + GAME.camera.position.x + ', ' + GAME.camera.position.y );
@@ -173,10 +183,8 @@ animate();
 	}
 	
 	function tick( dt ){
-		for( ship in GAME.world.ships ){
-			GAME.world.ships[ship].tick( dt );
-			GAME.world.ships[ship].update_render();
-		}
+		GAME.world.tick(dt);
+		GAME.world.update_render();
 	}
 
 	function handle_keyboard_down(event){
@@ -197,9 +205,11 @@ animate();
 			if(key == 1 ) GAME.world.ships[this_user_id].set_turn( 1 );
 			if(key == 2 ) GAME.world.ships[this_user_id].set_forward( 1 );
 			if(key == 3 ) GAME.world.ships[this_user_id].set_turn( -1 );
-			console.log('Pressed the key. is forward = ' + GAME.world.ships[this_user_id].forward_value );
+			//console.log('Pressed the key. is forward = ' + GAME.world.ships[this_user_id].forward_value );
 			GAME.socket.emit( 'ship control on', 40-keyCode );
 		}
+		
+		//console.log( keyCode );
 	}
 
 	function handle_keyboard_up(event){
@@ -221,8 +231,12 @@ animate();
 			if(key == 1 ) GAME.world.ships[this_user_id].set_turn( 0 );
 			if(key == 2 ) GAME.world.ships[this_user_id].set_forward( 0 );
 			if(key == 3 ) GAME.world.ships[this_user_id].set_turn( 0 );
-			console.log('Released the key. is forward = ' + GAME.world.ships[this_user_id].forward_value );
+			//console.log('Released the key. is forward = ' + GAME.world.ships[this_user_id].forward_value );
 			GAME.socket.emit( 'ship control off', 40-keyCode );
+		}
+		if( keyCode == 32 ){
+			GAME.world.add_shot( GAME.this_ship_id );
+			create_projectile_mesh( GAME.world.projectiles.length - 1 );
 		}
 	}
 

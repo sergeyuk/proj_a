@@ -72,7 +72,7 @@ var ShipClass = function(){
 
 	this.apply_pos_correction = function( dt ){
 		if( this.correction_length > 0 ){
-			console.log( "correction length: " + this.correction_length );
+			//console.log( "correction length: " + this.correction_length );
 			var correction_speed = 8.0 + this.correction_length;
 			
 			var new_pos = {};
@@ -111,10 +111,6 @@ var ShipClass = function(){
 		if( this.vel < 0.2 && this.forward_value != 1 ){
 			this.vel = 0;
 			this.acc = 0;
-		}				
-
-		if( this.forward_value == 1 ){
-			console.log( 'dt=' + dt + 'velocity=' + this.vel );
 		}
 
 		this.apply_pos_correction( dt );
@@ -146,15 +142,6 @@ var ShipClass = function(){
 
 	this.update_render = function(){
 		if( this.mesh ){
-			if( this.mesh.position.y != this.pos.y ) {
-				/*console.log('Update render pos for a ship. Change pos from ('  
-					+ this.mesh.position.x + ','
-					+ this.mesh.position.y + ','
-					+ this.mesh.position.z + ') to (' 
-					+ this.pos.x + ','
-					+ this.pos.x + ','
-					+ this.pos.x + ')'); */
-			}
 			this.mesh.position.set( this.pos.x, this.pos.y, this.pos.z);
 			this.mesh.rotation.z = -this.angle * Math.PI / 180;
 		}
@@ -173,14 +160,77 @@ var ShipClass = function(){
 
 var ProjectileClass = function() {
 	this.dir;
-	this.velocity;
-	this.position;
+	this.vel;
+	this.pos;
 	this.owner_id;
+	this.max_len;
+	this.start;
+	this.mesh;
+
+	this.tick = function( dt ){
+		this.pos.x += ( this.dir.x * this.vel * dt ); 
+		this.pos.y += ( this.dir.y * this.vel * dt );
+		this.pos.z += ( this.dir.z * this.vel * dt );
+		//if( veclen( {x:this.pos.x-this.start.x, y:this.pos.y-this.start.y, z:this.pos.z-this.start.z} ) > this.max_len ){
+			//delete this; // ???
+		//}
+	}
+	
+	this.update_render = function(){
+		if( this.mesh ){
+			this.mesh.position.set( this.pos.x, this.pos.y, this.pos.z);
+		}	
+	}
 };
 
 var WorldClass = function(){
 	this.ships = {};
 	this.projectiles = [];
+	
+	this.tick = function( dt ){		
+		for( var ship in this.ships ){
+			this.ships[ship].tick( dt );
+		}
+		
+		for( var i = 0; i < this.projectiles.length; i++ ){
+			this.projectiles[i].tick( dt );
+		}
+	}
+	
+	this.update_render = function(){
+		for( var ship in this.ships ){
+			this.ships[ship].update_render();
+		}
+		
+		for( var i = 0; i < this.projectiles.length; i++ ){
+			this.projectiles[i].update_render();
+		}
+	}
+	
+	this.add_projectile = function( pos, dir, type, owner_id ){
+		var p = new ProjectileClass();
+		p.dir = dir;
+		p.pos = pos;
+		p.vel = 50.0; // depends on type
+		p.max_len = 1000;// depends on type
+		p.owner_id = owner_id;
+		p.start = {x:pos.x, y:pos.y, z:pos.z};
+		
+		this.projectiles.push( p );
+	}
+	
+	this.add_shot = function( ship_id ){
+		if( this.ships.hasOwnProperty( ship_id ) ){
+			var ship = this.ships[ship_id];
+			
+			var pos = ship.get_position();	//get from ship
+			var dir = ship.get_direction(); //get from ship
+			var type = 1; 
+			var owner_id = ship_id;
+			
+			this.add_projectile( {x:pos.x,y:pos.y,z:pos.z}, {x:dir.x,y:dir.y,z:dir.z}, type, owner_id );
+		}
+	}
 };
 
 try{

@@ -91,9 +91,7 @@ io.sockets.on('connection', function (socket) {
 app.listen(8000);
 
 var sync_function = function(){
-	for( var ship_id in GAME.world.ships ){
-		GAME.world.ships[ship_id].tick( 0.1 );
-	}
+	GAME.world.tick( 0.1 );
 	io.sockets.emit('update', GAME.world.ships);
 }
 
