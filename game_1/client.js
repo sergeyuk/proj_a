@@ -31,6 +31,11 @@ init();
 init_socket_io();
 animate();
 
+	function create_shoot( owner_ship_id ){
+		GAME.world.add_shot( owner_ship_id );
+		create_projectile_mesh( GAME.world.projectiles.length - 1 );	
+	}
+
 	function create_projectile_mesh( projectile_id ){
 		var projectile_mesh = new THREE.Mesh( new THREE.SphereGeometry( 1, 32, 16 ), new THREE.MeshBasicMaterial( { color:0xFF0000, wireframe:false} ) );
 		GAME.scene.add( projectile_mesh );
@@ -99,6 +104,9 @@ animate();
 				client_ship.set_forward( forward );
 				client_ship.set_turn( turn );
 			});
+		socket.on( 'ship shoot event', function( data ){
+			create_shoot( data[0] );
+		});
 		GAME.socket = socket;
 	}	
 
@@ -167,9 +175,7 @@ animate();
 		if( dt > 0.033 ) dt = 0.033;
 		tick( dt );
 
-		if( GAME.this_ship_id == -1 ){
-		}
-		else{
+		if( GAME.this_ship_id != -1 ){
 			var this_ship = GAME.world.ships[GAME.this_ship_id];
 			if( this_ship ){
 				GAME.camera.position.x = -25 * this_ship.dir.x + this_ship.pos.x;
@@ -235,8 +241,8 @@ animate();
 			GAME.socket.emit( 'ship control off', 40-keyCode );
 		}
 		if( keyCode == 32 ){
-			GAME.world.add_shot( GAME.this_ship_id );
-			create_projectile_mesh( GAME.world.projectiles.length - 1 );
+			create_shoot( GAME.this_ship_id );
+			GAME.socket.emit( 'ship shot', [GAME.this_ship_id] );
 		}
 	}
 

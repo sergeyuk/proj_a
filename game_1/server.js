@@ -79,6 +79,11 @@ io.sockets.on('connection', function (socket) {
 		});
 	});
 
+	socket.on( 'ship shot', function( data ){
+		socket.broadcast.emit( 'ship shoot event', data );
+		GAME.world.add_shot( data[0] );
+	});
+	
 	socket.on('disconnect', function() {
 		socket.get( 'id', function( err, user_id ){
 			delete GAME.world.ships[user_id];
