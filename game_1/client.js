@@ -11,6 +11,8 @@ var GameClass = function(){
 	this.world;
 	this.particleLight;
 	this.pointLight;
+	this.directionalLight;
+	this.ambientLight;
 	
 	this.socket;
 	this.this_ship_id = -1;
@@ -133,9 +135,18 @@ animate();
 		
 		GAME.container.appendChild( GAME.renderer.domElement );
 		
+		GAME.ambientLight = new THREE.AmbientLight( 0x111111 );
+		GAME.scene.add( GAME.ambientLight );
+				
 		GAME.pointLight = new THREE.PointLight( 0xFFFFFF );		
 		GAME.pointLight.position.set( 10, 50, 130 );
 		GAME.scene.add(GAME.pointLight);
+		
+		
+		GAME.directionalLight = new THREE.DirectionalLight( 0xffffff );
+		GAME.directionalLight.position.set( 10, 50, 130 ).normalize();
+		GAME.scene.add( GAME.directionalLight );
+
 		
 		var plane = new THREE.Mesh( new THREE.PlaneGeometry(1000,1000,20,20), new THREE.MeshBasicMaterial( { color:0x555555, wireframe:true} ) );
 
@@ -160,10 +171,63 @@ animate();
 		new_ship.set_position( server_obj.pos );
 
 		var mesh_id = server_obj.mesh;
-		new_ship.material = new THREE.MeshLambertMaterial( materials_array[mesh_id] );
+		
+/////////////////////////////////////////////////		
+				var path = "textures/skybox/";
+				var format = '.jpg';
+				var urls = [
+						path + 'px' + format, path + 'nx' + format,
+						path + 'py' + format, path + 'ny' + format,
+						path + 'pz' + format, path + 'nz' + format
+					];
+
+				var reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
+///////////////////////////////////////////////////
+			if( 1 ){
+				var ambient = 0x111111, diffuse = 0xaaaaaa, specular = 0x080810, shininess = 2;
+
+				var shader = THREE.ShaderUtils.lib[ "normal" ];
+				var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+
+				uniforms[ "tNormal" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg_NRM.jpg" );
+				uniforms[ "tAO" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg_OCC.jpg" );
+
+				uniforms[ "tDiffuse" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg.png" ); // ok png?
+
+				uniforms[ "enableAO" ].value = true;
+				uniforms[ "enableDiffuse" ].value = true;
+				uniforms[ "enableSpecular" ].value = false;
+				uniforms[ "enableReflection" ].value = true;
+
+				uniforms[ "uDiffuseColor" ].value.setHex( diffuse );
+				//uniforms[ "uSpecularColor" ].value.setHex( specular );
+				uniforms[ "uAmbientColor" ].value.setHex( ambient );
+
+				uniforms[ "uShininess" ].value = shininess;
+
+				uniforms[ "tCube" ].texture = reflectionCube;
+				//uniforms[ "uReflectivity" ].value = 0.1;
+				uniforms[ "uReflectivity" ].value = 0.1;
+
+				var parameters = { fragmentShader: shader.fragmentShader, vertexShader: shader.vertexShader, uniforms: uniforms, lights: true, fog: false };
+				var material = new THREE.ShaderMaterial( parameters );
+
+				//loader = new THREE.JSONLoader( true );
+				//document.body.appendChild( loader.statusDomElement );
+
+				//loader.load( "obj/leeperrysmith/LeePerrySmith.js", function( geometry ) { createScene( geometry, 100, material ) } );
+
+				new_ship.material = material;
+			}
+			else{
+				new_ship.material = new THREE.MeshLambertMaterial( materials_array[mesh_id] );
+			}
 			
 		var loader = new THREE.JSONLoader( true );	
 		loader.load( { model: meshes_array[mesh_id], callback: function( geometry ) { 
+		
+			geometry.computeTangents();
+
 			new_ship.mesh = new THREE.Mesh( geometry, new_ship.material );
 			GAME.scene.add(new_ship.mesh);
 			new_ship.mesh.position.set( new_ship.pos.x, new_ship.pos.y, new_ship.pos.z );
@@ -173,8 +237,6 @@ animate();
 	var last_time_t = 0;
 	
 	function animate() {
-		requestAnimationFrame( animate );
-		
 		var timer = new Date().getTime() / 1000;
 		var dt = timer - last_time_t;
 		last_time_t = timer;
@@ -192,6 +254,8 @@ animate();
 			}
 		}
 		GAME.renderer.render( GAME.scene, GAME.camera );
+		
+		requestAnimationFrame( animate );
 	}
 	
 	function tick( dt ){
