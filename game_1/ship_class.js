@@ -37,6 +37,9 @@ var ShipClass = function(){
 	this.delta_angle	= 0;
 	this.angular_vel	= 0;
 
+	this.turning_angle_deg = 30;
+	this.max_turning_angle_deg = 45;
+	
 	this.forward_value	= 0;
 	this.turn_value		= 0;
 
@@ -133,6 +136,28 @@ var ShipClass = function(){
 		this.angular_vel = turn_speed * this.turn_value;
 		this.angle += this.angular_vel * dt;
 
+		if( this.turn_value == 1 || this.turn_value == -1 ){
+			var speed_multiplier = ( ( this.turning_angle_deg < 0 && this.turn_value == 1 ) || ( this.turning_angle_deg > 0 && this.turn_value == -1 ) ) ? 2 : 1;
+			this.turning_angle_deg += this.turn_value * speed_multiplier * turn_speed * dt;
+			if( this.turn_value == 1 )
+				this.turning_angle_deg = Math.min( this.turning_angle_deg, this.max_turning_angle_deg );
+			else
+				this.turning_angle_deg = Math.max( this.turning_angle_deg, -this.max_turning_angle_deg );
+		}
+		else if( this.turn_value == 0 ){
+			if( this.turning_angle_deg > 0 ){
+				//console.log( 'turning_angle_deg: ' + this.turning_angle_deg );
+				this.turning_angle_deg = Math.max( this.turning_angle_deg - 2 * turn_speed * dt, 0 );
+				//console.log( 'turning_angle_deg: ' + this.turning_angle_deg );
+				//exit();
+			}
+			else if( this.turning_angle_deg < 0 ){
+				this.turning_angle_deg = Math.min( this.turning_angle_deg + 2 * turn_speed * dt, 0 );
+			}
+		}
+		
+		//console.log( 'turning_angle_deg' + this.turning_angle_deg );
+		
 		this.update_dir_vector();
 	}
 
@@ -150,6 +175,8 @@ var ShipClass = function(){
 		if( this.mesh ){
 			this.mesh.position.set( this.pos.x, this.pos.y, this.pos.z);
 			this.mesh.rotation.z = -this.angle * Math.PI / 180;
+			this.mesh.rotation.y = Math.cos( this.angle * Math.PI / 180 ) * ( this.turning_angle_deg * Math.PI / 180 );
+			this.mesh.rotation.x = Math.sin( this.angle * Math.PI / 180 ) * ( this.turning_angle_deg * Math.PI / 180 );
 		}
 	}
 
