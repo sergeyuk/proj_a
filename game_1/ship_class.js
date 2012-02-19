@@ -199,6 +199,7 @@ var WorldClass = function(){
 	this.projectiles = [];
 	
 	this.tick = function( dt ){		
+		//console.log( dt );
 		for( var ship in this.ships ){
 			this.ships[ship].tick( dt );
 		}

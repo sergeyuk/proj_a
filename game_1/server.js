@@ -95,10 +95,19 @@ io.sockets.on('connection', function (socket) {
 
 app.listen(8000);
 
+var last_time_value = new Date().getTime();
+
 var sync_function = function(){
-	GAME.world.tick( 0.1 );
-	io.sockets.emit('update', GAME.world.ships);
+	var current_time_value = new Date().getTime();
+	var dt = current_time_value - last_time_value;
+	if( dt > 0 ){
+		last_time_value = current_time_value;
+		GAME.world.tick( dt / 1000.0 );
+		io.sockets.emit('update', GAME.world.ships);
+	}
+	process.nextTick(sync_function);
 }
 
-setInterval( sync_function, 100 );
+process.nextTick(sync_function);
+//setInterval( sync_function, 100 );
 
