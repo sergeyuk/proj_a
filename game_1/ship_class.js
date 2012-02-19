@@ -14,7 +14,13 @@ function veclen( vec ){
 	return Math.sqrt( vec.x*vec.x + vec.y*vec.y + vec.z*vec.z );
 }
 
-
+function compute_sq_distance( v1, v2 ){
+	//console.log( 'compute_sq_distance: v1: ' + v1 + ', v2: ' + v2 );
+	var dx = v1.x - v2.x;
+	var dy = v1.y - v2.y;
+	var dz = v1.z - v2.z;
+	return dx*dx + dy*dy + dz*dz;
+}
 
 var ShipClass = function(){
 	this.material;
@@ -171,9 +177,14 @@ var ProjectileClass = function() {
 		this.pos.x += ( this.dir.x * this.vel * dt ); 
 		this.pos.y += ( this.dir.y * this.vel * dt );
 		this.pos.z += ( this.dir.z * this.vel * dt );
-		//if( veclen( {x:this.pos.x-this.start.x, y:this.pos.y-this.start.y, z:this.pos.z-this.start.z} ) > this.max_len ){
-			//delete this; // ???
-		//}
+		var total_distance = veclen( {x:this.pos.x-this.start.x, y:this.pos.y-this.start.y, z:this.pos.z-this.start.z} );
+		//console.log( 'total_distance = ' + total_distance );
+		if( total_distance > this.max_len ){
+			console.log( "Projectile should be deleted now." );
+			return 1;
+		}
+		
+		return 0;
 	}
 	
 	this.update_render = function(){
@@ -192,8 +203,73 @@ var WorldClass = function(){
 			this.ships[ship].tick( dt );
 		}
 		
+		var should_clear_projectiles_array = false;
+		
 		for( var i = 0; i < this.projectiles.length; i++ ){
-			this.projectiles[i].tick( dt );
+			if( this.projectiles[i].tick( dt ) == 1 ){
+				this.on_delete_projectile_callback ? this.on_delete_projectile_callback( i ) : 0;
+				delete this.projectiles[i];
+				should_clear_projectiles_array = true;
+			}
+		}
+		
+		if( should_clear_projectiles_array ){
+			var old_len = this.projectiles.length;
+			var newArr = new Array();for (k in this.projectiles) if(this.projectiles[k]) newArr.push(this.projectiles[k])
+			this.projectiles = newArr;
+			var new_len = this.projectiles.length;
+			console.log( 'cleared some projectiles. old len: ' + old_len + ', new len: ' + new_len );
+		}
+		
+		this.tick_collision( dt );
+	}
+	
+	
+	this.on_delete_projectile_callback;
+	this.on_ship_ship_collision_callback;
+	this.on_ship_projectile_collision_callback;
+	
+	this.set_ship_ship_collision_callback 		= function( callback ){ this.on_ship_ship_collision_callback = callback; }
+	this.set_ship_projectile_collision_callback = function( callback ){ this.on_ship_projectile_collision_callback = callback; }
+	this.set_delete_projectile_callback 		= function( callback ){ this.on_delete_projectile_callback = callback; }
+	
+	this.tick_collision = function( dt ){
+		var ships = this.ships;
+		var ship_ids = [];
+		
+		for( ship_id in ships ){ 
+			ship_ids.push( ship_id ); 
+		}
+		
+		var total_ships_num = ship_ids.length;
+		
+		for( var i = 0; i < total_ships_num; i++ ){
+			var ship1_id = ship_ids[i];
+			var ship1 = ships[ ship1_id ];
+			
+			for( var j = i + 1; j < total_ships_num; j++ ){
+				var ship2 = ships[ ship_ids[j] ];
+				var sq_distance = compute_sq_distance( ship1.get_position(), ship2.get_position() );
+				//console.log( 'ship/ship. sq_distance=' + sq_distance );
+				
+				if( sq_distance < 4 ){
+					this.onShipShipCollisionCallback ? this.onShipShipCollisionCallback( ship1, ship2 ) : 0;
+					console.log( 'ship/ship collision happened.' );
+					break;
+				}
+			}
+			
+			for( var j = 0; j < this.projectiles.length; j++ ){
+				var projectile = this.projectiles[j];
+				if( projectile.owner_id != ship1_id ){
+					var sq_distance = compute_sq_distance( ship1.get_position(), projectile.pos );
+					if( sq_distance < 4 ){
+						this.onShipProjectileCollisionCallback ? this.onShipProjectileCollisionCallback( ship1, projectile ) : 0;
+						console.log( 'ship/projectile collision' );
+						break;
+					}
+				}
+			}
 		}
 	}
 	
@@ -212,7 +288,7 @@ var WorldClass = function(){
 		p.dir = dir;
 		p.pos = pos;
 		p.vel = 50.0; // depends on type
-		p.max_len = 1000;// depends on type
+		p.max_len = 300;// depends on type
 		p.owner_id = owner_id;
 		p.start = {x:pos.x, y:pos.y, z:pos.z};
 		
@@ -231,6 +307,7 @@ var WorldClass = function(){
 			this.add_projectile( {x:pos.x,y:pos.y,z:pos.z}, {x:dir.x,y:dir.y,z:dir.z}, type, owner_id );
 		}
 	}
+	
 };
 
 try{

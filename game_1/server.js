@@ -48,7 +48,7 @@ io.sockets.on('connection', function (socket) {
 
 	socket.on( 'ship control on', function(key){ 
 		socket.get( 'id', function( err, user_id ){
-			console.log( "ship control on. id=" + user_id );
+			//console.log( "ship control on. id=" + user_id );
 			var this_ship = GAME.world.ships[user_id];
 			var fwd = this_ship.get_forward();
 			var turn = this_ship.get_turn();
@@ -57,7 +57,7 @@ io.sockets.on('connection', function (socket) {
 			if(key == 2 ) this_ship.set_forward( 1 );
 			if(key == 3 ) this_ship.set_turn( -1 );
 			if( fwd != this_ship.get_forward() || turn != this_ship.get_turn() ){
-				console.log( '=============BROADCAST================');
+				//console.log( '=============BROADCAST================');
 				socket.broadcast.emit( 'ship control update', [user_id, this_ship.get_forward(), this_ship.get_turn()] );
 			}
 		});
@@ -73,7 +73,7 @@ io.sockets.on('connection', function (socket) {
 			if(key == 2 ) this_ship.set_forward( 0 );
 			if(key == 3 ) this_ship.set_turn( 0 );
 			if( fwd != this_ship.get_forward() || turn != this_ship.get_turn() ){
-				console.log( '=============BROADCAST================');
+				//console.log( '=============BROADCAST================');
 				socket.broadcast.emit( 'ship control update', [user_id, this_ship.get_forward(), this_ship.get_turn()] );
 			}
 		});

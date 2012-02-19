@@ -46,6 +46,10 @@ animate();
 			alert( 'wrong projectile ID passed' );
 		}
 	}
+	
+	function delete_projectile( id ){
+		GAME.scene.remove( GAME.world.projectiles[id].mesh );
+	}
 
 	function create_particle_system(){
 		var geometry = new THREE.Geometry();
@@ -139,6 +143,8 @@ animate();
 
 		window.addEventListener('keydown',handle_keyboard_down,false);
 		window.addEventListener('keyup',handle_keyboard_up,false);
+		
+		GAME.world.set_delete_projectile_callback( delete_projectile );
 	}
 	
 
