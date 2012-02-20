@@ -37,7 +37,7 @@ var ShipClass = function(){
 	this.delta_angle	= 0;
 	this.angular_vel	= 0;
 
-	this.turning_angle_deg = 30;
+	this.turning_angle_deg = 0;
 	this.max_turning_angle_deg = 45;
 	
 	this.forward_value	= 0;

@@ -104,8 +104,11 @@ var sync_function = function(){
 		last_time_value = current_time_value;
 		GAME.world.tick( dt / 1000.0 );
 		io.sockets.emit('update', GAME.world.ships);
+		process.nextTick(sync_function);
 	}
-	process.nextTick(sync_function);
+	else{
+		setTimeout(sync_function, 1)
+	}	
 }
 
 process.nextTick(sync_function);

@@ -14,6 +14,11 @@ var GameClass = function(){
 	this.directionalLight;
 	this.ambientLight;
 	
+	this.skyboxScene;
+	this.skyboxCamera;
+	this.skyboxCameraTarget;
+	this.reflectionCube;
+	
 	this.socket;
 	this.this_ship_id = -1;
 }
@@ -32,6 +37,37 @@ GAME.world = new WorldClass();
 init();
 init_socket_io();
 animate();
+	
+	function create_skybox(){
+	// Skybox
+		
+/////////////////////////////////////////////////		
+				var path = "textures/skybox/";
+				var format = '.jpg';
+				var urls = [
+						path + 'px' + format, path + 'nx' + format,
+						path + 'py' + format, path + 'ny' + format,
+						path + 'pz' + format, path + 'nz' + format
+					];
+
+				GAME.reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
+				
+				var shader = THREE.ShaderUtils.lib[ "cube" ];
+				shader.uniforms[ "tCube" ].texture = GAME.reflectionCube;
+
+				var material = new THREE.ShaderMaterial( {
+
+					fragmentShader: shader.fragmentShader,
+					vertexShader: shader.vertexShader,
+					uniforms: shader.uniforms,
+					depthWrite: false
+
+				} );
+
+				var mesh = new THREE.Mesh( new THREE.CubeGeometry( 100, 100, 100 ), material );
+				mesh.flipSided = true;
+				GAME.skyboxScene.add( mesh );
+	}
 
 	function create_shoot( owner_ship_id ){
 		GAME.world.add_shot( owner_ship_id );
@@ -128,10 +164,15 @@ animate();
 		GAME.cameraTarget = new THREE.Vector3(0,0,0); 
 		GAME.camera.lookAt( GAME.cameraTarget );
 
+		GAME.skyboxCamera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 100 );
+		GAME.skyboxCameraTarget = new THREE.Vector3( 0, 0, 0 );
+
 		GAME.scene = new THREE.Scene();
+		GAME.skyboxScene = new THREE.Scene();
 		
 		GAME.renderer = new THREE.WebGLRenderer();
 		GAME.renderer.setSize(window.innerWidth, window.innerHeight);
+		GAME.renderer.autoClear = false;
 		
 		GAME.container.appendChild( GAME.renderer.domElement );
 		
@@ -156,6 +197,8 @@ animate();
 		window.addEventListener('keyup',handle_keyboard_up,false);
 		
 		GAME.world.set_delete_projectile_callback( delete_projectile );
+		
+		create_skybox();
 	}
 	
 
@@ -171,51 +214,33 @@ animate();
 		new_ship.set_position( server_obj.pos );
 
 		var mesh_id = server_obj.mesh;
-		
-/////////////////////////////////////////////////		
-				var path = "textures/skybox/";
-				var format = '.jpg';
-				var urls = [
-						path + 'px' + format, path + 'nx' + format,
-						path + 'py' + format, path + 'ny' + format,
-						path + 'pz' + format, path + 'nz' + format
-					];
 
-				var reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
 ///////////////////////////////////////////////////
 			if( 1 ){
-				var ambient = 0x111111, diffuse = 0xaaaaaa, specular = 0x080810, shininess = 2;
+				var ambient = 0x111111, diffuse = 0xaaaaaa, specular = 0x7f7f7f, shininess = 20;
 
 				var shader = THREE.ShaderUtils.lib[ "normal" ];
 				var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
 
 				uniforms[ "tNormal" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg_NRM.jpg" );
-				uniforms[ "tAO" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg_OCC.jpg" );
-
 				uniforms[ "tDiffuse" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg.png" ); // ok png?
 
-				uniforms[ "enableAO" ].value = true;
+				uniforms[ "enableAO" ].value = false;
 				uniforms[ "enableDiffuse" ].value = true;
 				uniforms[ "enableSpecular" ].value = false;
 				uniforms[ "enableReflection" ].value = true;
 
 				uniforms[ "uDiffuseColor" ].value.setHex( diffuse );
-				//uniforms[ "uSpecularColor" ].value.setHex( specular );
+				uniforms[ "uSpecularColor" ].value.setHex( specular );
 				uniforms[ "uAmbientColor" ].value.setHex( ambient );
 
 				uniforms[ "uShininess" ].value = shininess;
 
-				uniforms[ "tCube" ].texture = reflectionCube;
-				//uniforms[ "uReflectivity" ].value = 0.1;
+				uniforms[ "tCube" ].texture = GAME.reflectionCube;
 				uniforms[ "uReflectivity" ].value = 0.1;
 
 				var parameters = { fragmentShader: shader.fragmentShader, vertexShader: shader.vertexShader, uniforms: uniforms, lights: true, fog: false };
 				var material = new THREE.ShaderMaterial( parameters );
-
-				//loader = new THREE.JSONLoader( true );
-				//document.body.appendChild( loader.statusDomElement );
-
-				//loader.load( "obj/leeperrysmith/LeePerrySmith.js", function( geometry ) { createScene( geometry, 100, material ) } );
 
 				new_ship.material = material;
 			}
@@ -253,6 +278,17 @@ animate();
 				GAME.camera.lookAt( GAME.cameraTarget );
 			}
 		}
+		
+		GAME.skyboxCameraTarget.x = GAME.cameraTarget.x - GAME.camera.position.x;
+		GAME.skyboxCameraTarget.y = GAME.cameraTarget.z - GAME.camera.position.z;
+		GAME.skyboxCameraTarget.z = -( GAME.cameraTarget.y - GAME.camera.position.y );
+
+		GAME.skyboxCameraTarget.normalize();
+		
+		GAME.skyboxCamera.lookAt( GAME.skyboxCameraTarget );
+		
+		GAME.renderer.clear();
+		GAME.renderer.render( GAME.skyboxScene, GAME.skyboxCamera );
 		GAME.renderer.render( GAME.scene, GAME.camera );
 		
 		requestAnimationFrame( animate );
