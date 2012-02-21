@@ -158,7 +158,7 @@ animate();
 		document.body.appendChild( GAME.container );
 
 		GAME.camera = new THREE.CombinedCamera( window.innerWidth, window.innerHeight, 45, 1, 10000, -2000, 10000 );
-		GAME.camera.position.set( 0, -15, 5 );
+		GAME.camera.position.set( 0, -15, 10 );
 		GAME.camera.up.x = GAME.camera.up.y = 0;
 		GAME.camera.up.z = 1;
 		GAME.cameraTarget = new THREE.Vector3(0,0,0); 
