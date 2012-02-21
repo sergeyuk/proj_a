@@ -327,6 +327,8 @@ animate();
 	function handle_keyboard_up(event){
 		var keyCode = 0;
 
+		console.log( 'handle_keyboard_up: ' + event );
+		
 		if( event == null ){
 			keyCode = window.event.keyCode;
 			window.event.preventDefault();
