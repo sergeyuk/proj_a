@@ -327,8 +327,6 @@ animate();
 	function handle_keyboard_up(event){
 		var keyCode = 0;
 
-		console.log( 'handle_keyboard_up: ' + event );
-		
 		if( event == null ){
 			keyCode = window.event.keyCode;
 			window.event.preventDefault();
@@ -337,6 +335,9 @@ animate();
 			keyCode = event.keyCode;
 			event.preventDefault();
 		}
+		
+		//console.log( 'handle_keyboard_up: ' + keyCode );
+		
 		if(keyCode>=37 && keyCode <=40)	{
 			var key = 40-keyCode;
 			var this_user_id = GAME.this_ship_id;
@@ -348,7 +349,7 @@ animate();
 			//console.log('Released the key. is forward = ' + GAME.world.ships[this_user_id].forward_value );
 			GAME.socket.emit( 'ship control off', 40-keyCode );
 		}
-		if( keyCode == 32 ){
+		if( keyCode == 32 || keyCode == 17 ){
 			create_shoot( GAME.this_ship_id );
 			GAME.socket.emit( 'ship shot', [GAME.this_ship_id] );
 		}
