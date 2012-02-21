@@ -39,34 +39,31 @@ init_socket_io();
 animate();
 	
 	function create_skybox(){
-	// Skybox
+		var path = "textures/skybox/";
+		var format = '.jpg';
+		var urls = [
+				path + 'px' + format, path + 'nx' + format,
+				path + 'py' + format, path + 'ny' + format,
+				path + 'pz' + format, path + 'nz' + format
+			];
+
+		GAME.reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
 		
-/////////////////////////////////////////////////		
-				var path = "textures/skybox/";
-				var format = '.jpg';
-				var urls = [
-						path + 'px' + format, path + 'nx' + format,
-						path + 'py' + format, path + 'ny' + format,
-						path + 'pz' + format, path + 'nz' + format
-					];
+		var shader = THREE.ShaderUtils.lib[ "cube" ];
+		shader.uniforms[ "tCube" ].texture = GAME.reflectionCube;
 
-				GAME.reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
-				
-				var shader = THREE.ShaderUtils.lib[ "cube" ];
-				shader.uniforms[ "tCube" ].texture = GAME.reflectionCube;
+		var material = new THREE.ShaderMaterial( {
 
-				var material = new THREE.ShaderMaterial( {
+			fragmentShader: shader.fragmentShader,
+			vertexShader: shader.vertexShader,
+			uniforms: shader.uniforms,
+			depthWrite: false
 
-					fragmentShader: shader.fragmentShader,
-					vertexShader: shader.vertexShader,
-					uniforms: shader.uniforms,
-					depthWrite: false
+		} );
 
-				} );
-
-				var mesh = new THREE.Mesh( new THREE.CubeGeometry( 100, 100, 100 ), material );
-				mesh.flipSided = true;
-				GAME.skyboxScene.add( mesh );
+		var mesh = new THREE.Mesh( new THREE.CubeGeometry( 100, 100, 100 ), material );
+		mesh.flipSided = true;
+		GAME.skyboxScene.add( mesh );
 	}
 
 	function create_shoot( owner_ship_id ){
@@ -214,43 +211,44 @@ animate();
 		new_ship.set_position( server_obj.pos );
 
 		var mesh_id = server_obj.mesh;
+		
+		if( 1 ){
+			// Use normal map
+			var ambient = 0x111111, diffuse = 0xaaaaaa, specular = 0x7f7f7f, shininess = 20;
 
-///////////////////////////////////////////////////
-			if( 1 ){
-				var ambient = 0x111111, diffuse = 0xaaaaaa, specular = 0x7f7f7f, shininess = 20;
+			var shader = THREE.ShaderUtils.lib[ "normal" ];
+			var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
 
-				var shader = THREE.ShaderUtils.lib[ "normal" ];
-				var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+			uniforms[ "tNormal" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg_NRM.jpg" );
+			uniforms[ "tDiffuse" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg.png" ); // ok png?
 
-				uniforms[ "tNormal" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg_NRM.jpg" );
-				uniforms[ "tDiffuse" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg.png" ); // ok png?
+			uniforms[ "enableAO" ].value = false;
+			uniforms[ "enableDiffuse" ].value = true;
+			uniforms[ "enableSpecular" ].value = false;
+			uniforms[ "enableReflection" ].value = true;
 
-				uniforms[ "enableAO" ].value = false;
-				uniforms[ "enableDiffuse" ].value = true;
-				uniforms[ "enableSpecular" ].value = false;
-				uniforms[ "enableReflection" ].value = true;
+			uniforms[ "uDiffuseColor" ].value.setHex( diffuse );
+			uniforms[ "uSpecularColor" ].value.setHex( specular );
+			uniforms[ "uAmbientColor" ].value.setHex( ambient );
 
-				uniforms[ "uDiffuseColor" ].value.setHex( diffuse );
-				uniforms[ "uSpecularColor" ].value.setHex( specular );
-				uniforms[ "uAmbientColor" ].value.setHex( ambient );
+			uniforms[ "uShininess" ].value = shininess;
 
-				uniforms[ "uShininess" ].value = shininess;
+			uniforms[ "tCube" ].texture = GAME.reflectionCube;
+			uniforms[ "uReflectivity" ].value = 0.1;
 
-				uniforms[ "tCube" ].texture = GAME.reflectionCube;
-				uniforms[ "uReflectivity" ].value = 0.1;
+			var parameters = { fragmentShader: shader.fragmentShader, vertexShader: shader.vertexShader, uniforms: uniforms, lights: true, fog: false };
+			var material = new THREE.ShaderMaterial( parameters );
 
-				var parameters = { fragmentShader: shader.fragmentShader, vertexShader: shader.vertexShader, uniforms: uniforms, lights: true, fog: false };
-				var material = new THREE.ShaderMaterial( parameters );
-
-				new_ship.material = material;
-			}
-			else{
-				new_ship.material = new THREE.MeshLambertMaterial( materials_array[mesh_id] );
-			}
+			new_ship.material = material;
+		}
+		else{
+			// Old system - no normal maps
+			new_ship.material = new THREE.MeshLambertMaterial( materials_array[mesh_id] );
+		}
 			
 		var loader = new THREE.JSONLoader( true );	
 		loader.load( { model: meshes_array[mesh_id], callback: function( geometry ) { 
-		
+			geometry.computeVertexNormals();
 			geometry.computeTangents();
 
 			new_ship.mesh = new THREE.Mesh( geometry, new_ship.material );
