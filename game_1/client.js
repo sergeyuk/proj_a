@@ -244,17 +244,17 @@ animate();
 		else{
 			// Old system - no normal maps
 			new_ship.material = new THREE.MeshLambertMaterial( materials_array[mesh_id] );
-		}
+		}			
 			
-		var loader = new THREE.JSONLoader( true );	
-		loader.load( { model: meshes_array[mesh_id], callback: function( geometry ) { 
-			geometry.computeVertexNormals();
+		var loader = new THREE.JSONLoader();	
+		loader.load( meshes_array[mesh_id], function( geometry ) { 
+			//geometry.computeVertexNormals();
 			geometry.computeTangents();
 
 			new_ship.mesh = new THREE.Mesh( geometry, new_ship.material );
 			GAME.scene.add(new_ship.mesh);
 			new_ship.mesh.position.set( new_ship.pos.x, new_ship.pos.y, new_ship.pos.z );
-			} } );
+			} );
 	}
 	
 	var last_time_t = 0;
