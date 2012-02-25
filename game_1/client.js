@@ -23,6 +23,8 @@ var GameClass = function(){
 	this.this_ship_id = -1;
 }
 
+var stats;
+
 var materials_array = {
 	1 : { map: THREE.ImageUtils.loadTexture( "obj/Gg/Gg.png" ) }
 };
@@ -153,6 +155,11 @@ animate();
 	function init() {
 		GAME.container = document.createElement( 'div' );
 		document.body.appendChild( GAME.container );
+
+		stats = new Stats();
+		stats.domElement.style.position = 'absolute';
+		stats.domElement.style.top = '10px';
+		GAME.container.appendChild( stats.domElement );
 
 		GAME.camera = new THREE.CombinedCamera( window.innerWidth, window.innerHeight, 45, 1, 10000, -2000, 10000 );
 		GAME.camera.position.set( 0, -15, 10 );
@@ -289,6 +296,7 @@ animate();
 		GAME.renderer.render( GAME.skyboxScene, GAME.skyboxCamera );
 		GAME.renderer.render( GAME.scene, GAME.camera );
 		
+		stats.update();
 		requestAnimationFrame( animate );
 	}
 	
