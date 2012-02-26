@@ -1,5 +1,9 @@
 var url = require("url");
-var ShipClass = require( "./ship_class" ).ShipClass;
+var ShipClass = require( "./shared/ship" ).ShipClass;
+var WorldClass = require( "./shared/world" ).WorldClass;
+var ProjectileClass = require( "./shared/projectile" ).ProjectileClass;
+require( "./shared/custom_math" );
+
 
 function handler (req, res) {
 	if (req.method === "GET" || req.method === "HEAD") {

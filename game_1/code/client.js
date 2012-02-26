@@ -94,6 +94,8 @@ animate();
 		GAME.scene.remove( GAME.world.projectiles[id].mesh );
 	}
 
+	
+	
 	/* three.ex.js + sparks approach */
 	function create_sparks_particles(){
 		var sparks	= new THREEx.Sparks({
