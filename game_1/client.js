@@ -18,6 +18,12 @@ var GameClass = function(){
 	this.skyboxCamera;
 	this.skyboxCameraTarget;
 	this.reflectionCube;
+
+	// particles
+	this.particlesScene;
+	this.sparksEmitter;
+	this.group;
+	this.threexSparks;
 	
 	this.socket;
 	this.this_ship_id = -1;
@@ -88,19 +94,161 @@ animate();
 		GAME.scene.remove( GAME.world.projectiles[id].mesh );
 	}
 
-	function create_particle_system(){
-		var geometry = new THREE.Geometry();
-		var sprite = THREE.ImageUtils.loadTexture( "textures/sprites/spark1.png" );
-		for ( i = 0; i < 10000; i++ ) {
-			var x = 2000 * Math.random() - 1000;
-			var y = 2000 * Math.random() - 1000;
-			var z = 2000 * Math.random() - 1000;
+	/* three.ex.js + sparks approach */
+	function create_sparks_particles(){
+		var sparks	= new THREEx.Sparks({
+				maxParticles	: 50,
+				counter		: new SPARKS.SteadyCounter(20),
+				//texture		: THREE.ImageUtils.loadTexture("./images/tremulous/damage/blood.jpg"),
+				//texture		: THREE.ImageUtils.loadTexture("./images/tremulous/lcannon/primary_4.jpg"),
+				//texture		: THREE.ImageUtils.loadTexture("./images/tremulous/marks/burn_mrk.jpg"),
+				//texture		: THREE.ImageUtils.loadTexture("./images/tremulous/blaster/orange_particle.jpg"),
+			});
+		sparks.initializer	= {
+			color	: function(value){
+				sparks.emitter().addInitializer(new THREEx.SparksPlugins.InitColor(value));
+				return sparks.initializer;
+			},
+			size	: function(value){
+				sparks.emitter().addInitializer(new THREEx.SparksPlugins.InitSize(value));
+				return sparks.initializer;
+			},
+			lifeTime: function(minValue, maxValue){
+				sparks.emitter().addInitializer(new SPARKS.Lifetime(minValue, maxValue));
+				return sparks.initializer;
+			}
+		};
+		
+		// setup the emitter
+		var emitter	= sparks.emitter();
 
-			vector = new THREE.Vector3( x, y, z );
-			geometry.vertices.push( new THREE.Vertex( vector ) );
-		}	
+		var originalColor	= new THREE.Color().setRGB(0.5,0.3,0);
+		var originalSize	= 20;
+
+		sparks.initializer.color(originalColor).size(originalSize).lifeTime(0.4, 1);
+		
+		emitter.addInitializer(new SPARKS.Position( new SPARKS.PointZone( new THREE.Vector3(0,0,0) ) ) );
+		emitter.addInitializer(new SPARKS.Velocity(new SPARKS.PointZone(new THREE.Vector3(0,3,0))));		
+		
+		emitter.addAction(new SPARKS.Age());
+		emitter.addAction(new SPARKS.Move());
+		emitter.addAction(new THREEx.SparksPlugins.ActionLinearColor(originalColor, new THREE.Color().setRGB(0,0,0.6), 1));
+		emitter.addAction(new THREEx.SparksPlugins.ActionLinearSize(originalSize, originalSize/4, 1));
+		emitter.addAction(new SPARKS.RandomDrift(5,0,5));
+
+		// start the emitter
+		sparks.emitter().start();
+
+		return sparks;
+
 	}
 	
+	function create_particle_system(){
+	
+			GAME.threexSparks	= create_sparks_particles();
+			//threexSparks.container().rotation.z	= Math.PI/2;
+			// add the particles to the scene
+			GAME.particlesScene.add(GAME.threexSparks.container());
+	}
+	
+	/*	Sparks.js approach.
+	function create_particle_system(){
+		GAME.group = new THREE.Object3D();
+		GAME.scene.add( GAME.group );
+		
+		var particle_image_path = "textures/sprites/spark1.png";
+		
+		
+		var sparksEmitter = new SPARKS.Emitter(new SPARKS.SteadyCounter(200));
+
+		var emitterpos = new THREE.Vector3(0,0,0);
+		var sphereCap = new SPARKS.SphereCapZone(0, 0, 0, 10, 0, 40);
+
+		sparksEmitter.addInitializer(new SPARKS.Position( new SPARKS.PointZone( emitterpos ) ) );
+		sparksEmitter.addInitializer(new SPARKS.Lifetime(0,4));
+		
+				
+		var h = 0;
+		
+		
+		var callback = function() {
+			var material = new THREE.ParticleBasicMaterial( { size: 35, sizeAttenuation: false, map: THREE.ImageUtils.loadTexture( particle_image_path ) } );
+			//var material = new THREE.ParticleCanvasMaterial( {  program: SPARKS.CanvasShadersUtils.circles , blending:THREE.AdditiveBlending } );
+			
+			material.color.setHSV(h, 1, 0.5); //0.7
+			h += 0.001;
+			if (h>1) h-=1;
+			
+			var particle = new THREE.Particle( material );
+
+			particle.scale.x = particle.scale.y = Math.random() * 2 +1;
+			GAME.group.add( particle );	
+
+			return particle;
+		};
+		
+
+		sparksEmitter.addInitializer(new SPARKS.Target(null, callback));
+
+		sparksEmitter.addInitializer(new SPARKS.Velocity(sphereCap));
+		sparksEmitter.addAction(new SPARKS.Age());
+		sparksEmitter.addAction(new SPARKS.Accelerate(0.2));
+		sparksEmitter.addAction(new SPARKS.Move()); 
+		
+		sparksEmitter.addCallback("created", function(p) {
+			var position = p.position;
+			p.target.position = position;	
+		});
+		
+		sparksEmitter.addCallback("initialized", function(particle) {
+			var position = p.position;
+			p.target.position = position;	
+		});
+		
+		sparksEmitter.addCallback("dead", function(particle) {
+			particle.target.visible = false; // is this a work around?
+			GAME.group.remove(particle.target); 			
+		});
+	
+		sparksEmitter.start();
+		GAME.sparksEmitter = sparksEmitter;
+	} */
+	
+	/*	pure three.js approach.
+	function create_particle_system(){
+		var particle_image_path = "textures/sprites/spark1.png";
+		
+		
+		// create the particle variables
+		var pMaterial = new THREE.ParticleBasicMaterial( { size: 35, sizeAttenuation: false, map: THREE.ImageUtils.loadTexture( particle_image_path ) } );
+		//pMaterial.color.setHSV( 1.0, 0.2, 0.8 );
+	
+		// now create the individual particles
+		var particleCount = 1800;
+	    var particles = new THREE.Geometry();
+		for(var p = 0; p < particleCount; p++) {
+			// create a particle with random
+			// position values, -250 -> 250
+			var pX = Math.random() * 500 - 250,
+				pY = Math.random() * 500 - 250,
+				pZ = Math.random() * 500 - 250;
+			var particle = new THREE.Vertex( new THREE.Vector3(pX, pY, pZ) );
+
+			// create a velocity vector
+			particle.velocity = new THREE.Vector3( 0, -Math.random(), 0);
+
+			// add it to the geometry
+			particles.vertices.push(particle);
+		}
+
+		// create the particle system
+		var particleSystem = new THREE.ParticleSystem( particles, pMaterial );
+		particleSystem.sortParticles = true;
+
+		// add it to the scene
+		GAME.particlesScene.add( particleSystem );
+	}
+	*/
 	function init_socket_io(){
 		var socket = io.connect();
 
@@ -173,8 +321,9 @@ animate();
 
 		GAME.scene = new THREE.Scene();
 		GAME.skyboxScene = new THREE.Scene();
+		GAME.particlesScene = new THREE.Scene();
 		
-		GAME.renderer = new THREE.WebGLRenderer();
+		GAME.renderer = new THREE.WebGLRenderer({ antialias : true, clearAlpha: 1 });
 		GAME.renderer.setSize(window.innerWidth, window.innerHeight);
 		GAME.renderer.autoClear = false;
 		
@@ -192,7 +341,6 @@ animate();
 		GAME.directionalLight.position.set( 10, 50, 130 ).normalize();
 		GAME.scene.add( GAME.directionalLight );
 
-		
 		var plane = new THREE.Mesh( new THREE.PlaneGeometry(1000,1000,20,20), new THREE.MeshBasicMaterial( { color:0x555555, wireframe:true} ) );
 
 		GAME.scene.add( plane );
@@ -203,6 +351,7 @@ animate();
 		GAME.world.set_delete_projectile_callback( delete_projectile );
 		
 		create_skybox();
+		create_particle_system();
 	}
 	
 
@@ -295,6 +444,9 @@ animate();
 		GAME.renderer.clear();
 		GAME.renderer.render( GAME.skyboxScene, GAME.skyboxCamera );
 		GAME.renderer.render( GAME.scene, GAME.camera );
+		
+		GAME.threexSparks && GAME.threexSparks.update();
+		GAME.renderer.render( GAME.particlesScene, GAME.camera );		
 		
 		stats.update();
 		requestAnimationFrame( animate );
