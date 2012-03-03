@@ -3,9 +3,10 @@
 var WorldClass = function(){
 	this.ships = {};
 	this.projectiles = [];
+	this.flags = [];
+	this.flag_platforms = [];
 	
 	this.tick = function( dt ){		
-		//console.log( dt );
 		for( var ship in this.ships ){
 			this.ships[ship].tick( dt );
 		}
@@ -26,6 +27,10 @@ var WorldClass = function(){
 			this.projectiles = newArr;
 			var new_len = this.projectiles.length;
 			console.log( 'cleared some projectiles. old len: ' + old_len + ', new len: ' + new_len );
+		}
+		
+		for( var i = 0; i < this.flags.length; i++ ){
+			this.flags[i].tick( dt );
 		}
 		
 		this.tick_collision( dt );
@@ -76,6 +81,12 @@ var WorldClass = function(){
 						break;
 					}
 				}
+			}
+			
+			for( var j = 0; j < this.flags.length; j++ ){
+				var flag = this.flags[j];
+				//if( flag.team_id  != ship1.team_id ) {
+				//}
 			}
 		}
 	}

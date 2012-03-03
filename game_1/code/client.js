@@ -27,6 +27,7 @@ var GameClass = function(){
 	
 	this.socket;
 	this.this_ship_id = -1;
+	
 }
 
 var stats;
@@ -142,115 +143,13 @@ animate();
 		sparks.emitter().start();
 
 		return sparks;
-
 	}
 	
-	function create_particle_system(){
-	
-			GAME.threexSparks	= create_sparks_particles();
-			//threexSparks.container().rotation.z	= Math.PI/2;
-			// add the particles to the scene
-			GAME.particlesScene.add(GAME.threexSparks.container());
+	function create_particle_system(){	
+		GAME.threexSparks	= create_sparks_particles();
+		GAME.particlesScene.add(GAME.threexSparks.container());
 	}
 	
-	/*	Sparks.js approach.
-	function create_particle_system(){
-		GAME.group = new THREE.Object3D();
-		GAME.scene.add( GAME.group );
-		
-		var particle_image_path = "textures/sprites/spark1.png";
-		
-		
-		var sparksEmitter = new SPARKS.Emitter(new SPARKS.SteadyCounter(200));
-
-		var emitterpos = new THREE.Vector3(0,0,0);
-		var sphereCap = new SPARKS.SphereCapZone(0, 0, 0, 10, 0, 40);
-
-		sparksEmitter.addInitializer(new SPARKS.Position( new SPARKS.PointZone( emitterpos ) ) );
-		sparksEmitter.addInitializer(new SPARKS.Lifetime(0,4));
-		
-				
-		var h = 0;
-		
-		
-		var callback = function() {
-			var material = new THREE.ParticleBasicMaterial( { size: 35, sizeAttenuation: false, map: THREE.ImageUtils.loadTexture( particle_image_path ) } );
-			//var material = new THREE.ParticleCanvasMaterial( {  program: SPARKS.CanvasShadersUtils.circles , blending:THREE.AdditiveBlending } );
-			
-			material.color.setHSV(h, 1, 0.5); //0.7
-			h += 0.001;
-			if (h>1) h-=1;
-			
-			var particle = new THREE.Particle( material );
-
-			particle.scale.x = particle.scale.y = Math.random() * 2 +1;
-			GAME.group.add( particle );	
-
-			return particle;
-		};
-		
-
-		sparksEmitter.addInitializer(new SPARKS.Target(null, callback));
-
-		sparksEmitter.addInitializer(new SPARKS.Velocity(sphereCap));
-		sparksEmitter.addAction(new SPARKS.Age());
-		sparksEmitter.addAction(new SPARKS.Accelerate(0.2));
-		sparksEmitter.addAction(new SPARKS.Move()); 
-		
-		sparksEmitter.addCallback("created", function(p) {
-			var position = p.position;
-			p.target.position = position;	
-		});
-		
-		sparksEmitter.addCallback("initialized", function(particle) {
-			var position = p.position;
-			p.target.position = position;	
-		});
-		
-		sparksEmitter.addCallback("dead", function(particle) {
-			particle.target.visible = false; // is this a work around?
-			GAME.group.remove(particle.target); 			
-		});
-	
-		sparksEmitter.start();
-		GAME.sparksEmitter = sparksEmitter;
-	} */
-	
-	/*	pure three.js approach.
-	function create_particle_system(){
-		var particle_image_path = "textures/sprites/spark1.png";
-		
-		
-		// create the particle variables
-		var pMaterial = new THREE.ParticleBasicMaterial( { size: 35, sizeAttenuation: false, map: THREE.ImageUtils.loadTexture( particle_image_path ) } );
-		//pMaterial.color.setHSV( 1.0, 0.2, 0.8 );
-	
-		// now create the individual particles
-		var particleCount = 1800;
-	    var particles = new THREE.Geometry();
-		for(var p = 0; p < particleCount; p++) {
-			// create a particle with random
-			// position values, -250 -> 250
-			var pX = Math.random() * 500 - 250,
-				pY = Math.random() * 500 - 250,
-				pZ = Math.random() * 500 - 250;
-			var particle = new THREE.Vertex( new THREE.Vector3(pX, pY, pZ) );
-
-			// create a velocity vector
-			particle.velocity = new THREE.Vector3( 0, -Math.random(), 0);
-
-			// add it to the geometry
-			particles.vertices.push(particle);
-		}
-
-		// create the particle system
-		var particleSystem = new THREE.ParticleSystem( particles, pMaterial );
-		particleSystem.sortParticles = true;
-
-		// add it to the scene
-		GAME.particlesScene.add( particleSystem );
-	}
-	*/
 	function init_socket_io(){
 		var socket = io.connect();
 
@@ -338,7 +237,6 @@ animate();
 		GAME.pointLight.position.set( 10, 50, 130 );
 		GAME.scene.add(GAME.pointLight);
 		
-		
 		GAME.directionalLight = new THREE.DirectionalLight( 0xffffff );
 		GAME.directionalLight.position.set( 10, 50, 130 ).normalize();
 		GAME.scene.add( GAME.directionalLight );
@@ -353,9 +251,58 @@ animate();
 		GAME.world.set_delete_projectile_callback( delete_projectile );
 		
 		create_skybox();
+		
+		create_flags();
 		create_particle_system();
 	}
 	
+	function create_flags(){
+		var flag_mesh_name = "obj/flag/Flag.js";
+		var flag_normal_map = THREE.ImageUtils.loadTexture( "obj/flag/Flag_NRM.jpg" );
+		var flag_diffuse_texture_paths = [ "obj/flag/FlagR.jpg", "obj/flag/FlagB.jpg" ];
+		
+		var flag_platform_mesh_name = "obj/flag_platform/Flag_Platform.js";
+		var flag_platform_normal_map = THREE.ImageUtils.loadTexture( "obj/flag_platform/Flag_Platform_NRM.jpg" );
+		var flag_platform_diffuse_texture = THREE.ImageUtils.loadTexture( "obj/flag_platform/Flag_Platform.jpg" );
+		
+		var flag_positions = [ {x:10,y:10,z:0}, {x:-10,y:0,z:0} ];
+		
+		for( var i = 0; i < 2; i++ ){
+			GAME.world.flags[i] = new FlagClass();
+			GAME.world.flag_platforms[i] = new FlagPlatformClass();
+			
+			(function ( index ){				
+				var material = create_normal_map_material( THREE.ImageUtils.loadTexture( flag_diffuse_texture_paths[index] ), flag_normal_map );
+				
+				var loader = new THREE.JSONLoader();	
+				loader.load( flag_mesh_name, function( geometry ) { 
+					geometry.computeTangents();
+					
+					var mesh = new THREE.Mesh( geometry, material );
+					GAME.scene.add(mesh);
+					mesh.position.set( flag_positions[index].x, flag_positions[index].y, flag_positions[index].z );
+					
+					GAME.world.flags[index].mesh = mesh;
+					
+				} );
+			})( i );
+			
+			(function ( index ){				
+				var material = create_normal_map_material( flag_platform_diffuse_texture, flag_platform_normal_map );
+				
+				var loader = new THREE.JSONLoader();	
+				loader.load( flag_platform_mesh_name, function( geometry ) { 
+					geometry.computeTangents();
+					
+					var mesh = new THREE.Mesh( geometry, material );
+					GAME.scene.add(mesh);
+					mesh.position.set( flag_positions[index].x, flag_positions[index].y, flag_positions[index].z );
+					
+					GAME.world.flag_platforms[index].mesh = mesh;
+				} );
+			})( i );
+		}
+	}
 
 	function create_ships_from_server_data( data ){
 		for( client_id in data ){
@@ -364,49 +311,44 @@ animate();
 		}
 	}
 
+	function create_normal_map_material( diffuse_texture, normal_map_texture ){
+		var ambient = 0x111111, diffuse = 0xaaaaaa, specular = 0x7f7f7f, shininess = 20;
+
+		var shader = THREE.ShaderUtils.lib[ "normal" ];
+		var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+
+		uniforms[ "tNormal" ].texture = normal_map_texture;
+		uniforms[ "tDiffuse" ].texture = diffuse_texture;
+
+		uniforms[ "enableAO" ].value = false;
+		uniforms[ "enableDiffuse" ].value = true;
+		uniforms[ "enableSpecular" ].value = false;
+		uniforms[ "enableReflection" ].value = true;
+
+		uniforms[ "uDiffuseColor" ].value.setHex( diffuse );
+		uniforms[ "uSpecularColor" ].value.setHex( specular );
+		uniforms[ "uAmbientColor" ].value.setHex( ambient );
+
+		uniforms[ "uShininess" ].value = shininess;
+
+		uniforms[ "tCube" ].texture = GAME.reflectionCube;
+		uniforms[ "uReflectivity" ].value = 0.1;
+
+		var parameters = { fragmentShader: shader.fragmentShader, vertexShader: shader.vertexShader, uniforms: uniforms, lights: true, fog: false };
+		var material = new THREE.ShaderMaterial( parameters );
+		return material;
+	}
+	
 	function load_ship( client_id, server_obj ){
 		var new_ship = GAME.world.ships[client_id];
 		new_ship.set_position( server_obj.pos );
 
 		var mesh_id = server_obj.mesh;
 		
-		if( 1 ){
-			// Use normal map
-			var ambient = 0x111111, diffuse = 0xaaaaaa, specular = 0x7f7f7f, shininess = 20;
-
-			var shader = THREE.ShaderUtils.lib[ "normal" ];
-			var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
-
-			uniforms[ "tNormal" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg_NRM.jpg" );
-			uniforms[ "tDiffuse" ].texture = THREE.ImageUtils.loadTexture( "obj/Gg/Gg.png" ); // ok png?
-
-			uniforms[ "enableAO" ].value = false;
-			uniforms[ "enableDiffuse" ].value = true;
-			uniforms[ "enableSpecular" ].value = false;
-			uniforms[ "enableReflection" ].value = true;
-
-			uniforms[ "uDiffuseColor" ].value.setHex( diffuse );
-			uniforms[ "uSpecularColor" ].value.setHex( specular );
-			uniforms[ "uAmbientColor" ].value.setHex( ambient );
-
-			uniforms[ "uShininess" ].value = shininess;
-
-			uniforms[ "tCube" ].texture = GAME.reflectionCube;
-			uniforms[ "uReflectivity" ].value = 0.1;
-
-			var parameters = { fragmentShader: shader.fragmentShader, vertexShader: shader.vertexShader, uniforms: uniforms, lights: true, fog: false };
-			var material = new THREE.ShaderMaterial( parameters );
-
-			new_ship.material = material;
-		}
-		else{
-			// Old system - no normal maps
-			new_ship.material = new THREE.MeshLambertMaterial( materials_array[mesh_id] );
-		}			
+		new_ship.material = create_normal_map_material( THREE.ImageUtils.loadTexture( "obj/Gg/Gg.png" ), THREE.ImageUtils.loadTexture( "obj/Gg/Gg_NRM.jpg" ) );
 			
 		var loader = new THREE.JSONLoader();	
 		loader.load( meshes_array[mesh_id], function( geometry ) { 
-			//geometry.computeVertexNormals();
 			geometry.computeTangents();
 
 			new_ship.mesh = new THREE.Mesh( geometry, new_ship.material );

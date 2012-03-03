@@ -3,7 +3,7 @@ var ShipClass = require( "./shared/ship" ).ShipClass;
 var WorldClass = require( "./shared/world" ).WorldClass;
 var ProjectileClass = require( "./shared/projectile" ).ProjectileClass;
 require( "./shared/custom_math" );
-
+var FlagClass = require( "./shared/flag" ).FlagClass;
 
 function handler (req, res) {
 	if (req.method === "GET" || req.method === "HEAD") {
