@@ -21,9 +21,6 @@ var GameClass = function(){
 
 	// particles
 	this.particlesScene;
-	this.sparksEmitter;
-	this.group;
-	this.threexSparks;
 	
 	this.socket;
 	this.this_ship_id = -1;
@@ -96,7 +93,6 @@ animate();
 	}
 
 	
-	
 	/* three.ex.js + sparks approach */
 	function create_sparks_particles(){
 		var sparks	= new THREEx.Sparks({
@@ -139,15 +135,13 @@ animate();
 		emitter.addAction(new THREEx.SparksPlugins.ActionLinearSize(originalSize, originalSize/4, 1));
 		emitter.addAction(new SPARKS.RandomDrift(5,0,5));
 
-		// start the emitter
-		sparks.emitter().start();
-
 		return sparks;
 	}
 	
 	function create_particle_system(){	
-		GAME.threexSparks	= create_sparks_particles();
-		GAME.particlesScene.add(GAME.threexSparks.container());
+		var particle_emitter = create_sparks_particles();
+		GAME.particlesScene.add( particle_emitter.container() );
+		return particle_emitter;
 	}
 	
 	function init_socket_io(){
@@ -190,16 +184,13 @@ animate();
 				var ship_id = data[0];
 				var forward = data[1];
 				var turn = data[2];
-				var client_ship = GAME.world.ships[ship_id];
-				client_ship.set_forward( forward );
-				client_ship.set_turn( turn );
+				handle_ship_control( GAME.world.ships[ship_id], forward, turn );
 			});
 		socket.on( 'ship shoot event', function( data ){
 			create_shoot( data[0] );
 		});
 		GAME.socket = socket;
-	}	
-
+	}
 
 	function init() {
 		GAME.container = document.createElement( 'div' );
@@ -221,7 +212,11 @@ animate();
 		GAME.skyboxCameraTarget = new THREE.Vector3( 0, 0, 0 );
 
 		GAME.scene = new THREE.Scene();
+		GAME.scene.add( GAME.camera );
+		
 		GAME.skyboxScene = new THREE.Scene();
+		GAME.skyboxScene.add( GAME.skyboxCamera );
+		
 		GAME.particlesScene = new THREE.Scene();
 		
 		GAME.renderer = new THREE.WebGLRenderer({ antialias : true, clearAlpha: 1 });
@@ -232,7 +227,7 @@ animate();
 		
 		GAME.ambientLight = new THREE.AmbientLight( 0x111111 );
 		GAME.scene.add( GAME.ambientLight );
-				
+		
 		GAME.pointLight = new THREE.PointLight( 0xFFFFFF );		
 		GAME.pointLight.position.set( 10, 50, 130 );
 		GAME.scene.add(GAME.pointLight);
@@ -251,9 +246,7 @@ animate();
 		GAME.world.set_delete_projectile_callback( delete_projectile );
 		
 		create_skybox();
-		
 		create_flags();
-		create_particle_system();
 	}
 	
 	function create_flags(){
@@ -339,6 +332,10 @@ animate();
 		return material;
 	}
 	
+	function create_standard_diffuse_material( diffuse_texture ){
+		return new THREE.MeshLambertMaterial( { map: diffuse_texture, transparent: true } );
+	}
+	
 	function load_ship( client_id, server_obj ){
 		var new_ship = GAME.world.ships[client_id];
 		new_ship.set_position( server_obj.pos );
@@ -354,7 +351,11 @@ animate();
 			new_ship.mesh = new THREE.Mesh( geometry, new_ship.material );
 			GAME.scene.add(new_ship.mesh);
 			new_ship.mesh.position.set( new_ship.pos.x, new_ship.pos.y, new_ship.pos.z );
-			} );
+			
+			new_ship.particle_emitter = create_particle_system();
+			//new_ship.particle_emitter.offset = new Three.Vector3();
+			new_ship.particle_emitter.container().rotation.z = Math.PI;
+		} );
 	}
 	
 	var last_time_t = 0;
@@ -386,16 +387,15 @@ animate();
 		GAME.skyboxCamera.lookAt( GAME.skyboxCameraTarget );
 		
 		GAME.renderer.clear();
+		
 		GAME.renderer.render( GAME.skyboxScene, GAME.skyboxCamera );
 		GAME.renderer.render( GAME.scene, GAME.camera );
-		
-		GAME.threexSparks && GAME.threexSparks.update();
 		GAME.renderer.render( GAME.particlesScene, GAME.camera );		
 		
 		stats.update();
 		requestAnimationFrame( animate );
 	}
-	
+
 	function tick( dt ){
 		GAME.world.tick(dt);
 		GAME.world.update_render();
@@ -415,17 +415,39 @@ animate();
 		if(keyCode>=37 && keyCode <=40)	{
 			var key = 40-keyCode;
 			var this_user_id = GAME.this_ship_id;
-			if(key == 0 ) GAME.world.ships[this_user_id].set_forward( -1 );
-			if(key == 1 ) GAME.world.ships[this_user_id].set_turn( 1 );
-			if(key == 2 ) GAME.world.ships[this_user_id].set_forward( 1 );
-			if(key == 3 ) GAME.world.ships[this_user_id].set_turn( -1 );
-			//console.log('Pressed the key. is forward = ' + GAME.world.ships[this_user_id].forward_value );
+			
+			var forward = undefined;
+			var turn = undefined;
+			
+			if(key == 0 ) forward = -1;
+			if(key == 1 ) turn = 1;
+			if(key == 2 ) forward = 1;
+			if(key == 3 ) turn = -1;
+			
+			handle_ship_control( GAME.world.ships[this_user_id], forward, turn );
+			
 			GAME.socket.emit( 'ship control on', 40-keyCode );
 		}
 		
 		//console.log( keyCode );
 	}
 
+	function handle_ship_control( ship, forward, turn ){
+		if( forward !== undefined ) 
+			ship.set_forward( forward );
+		if( turn !== undefined ) 	
+			ship.set_turn( turn );
+		
+		if( ship.particle_emitter ){		
+			if( forward === 1 ){
+				ship.particle_emitter.emitter().start();
+			}
+			else{
+				ship.particle_emitter.emitter().stop();
+			}
+		}
+	}
+	
 	function handle_keyboard_up(event){
 		var keyCode = 0;
 
@@ -444,10 +466,14 @@ animate();
 			var key = 40-keyCode;
 			var this_user_id = GAME.this_ship_id;
 
-			if(key == 0 ) GAME.world.ships[this_user_id].set_forward( 0 );
-			if(key == 1 ) GAME.world.ships[this_user_id].set_turn( 0 );
-			if(key == 2 ) GAME.world.ships[this_user_id].set_forward( 0 );
-			if(key == 3 ) GAME.world.ships[this_user_id].set_turn( 0 );
+			var forward = undefined;
+			var turn = undefined;
+			
+			if(key == 0 || key == 2 ) forward = 0;
+			if(key == 1 || key == 3 ) turn = 0;
+			
+			handle_ship_control( GAME.world.ships[this_user_id], forward, turn );
+			
 			//console.log('Released the key. is forward = ' + GAME.world.ships[this_user_id].forward_value );
 			GAME.socket.emit( 'ship control off', 40-keyCode );
 		}
